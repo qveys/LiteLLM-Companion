@@ -73,7 +73,12 @@ class WSLDetector:
                 cmd = " ".join(parts[10:])
 
                 for tool_name, tool_cfg in self._cli_names.items():
-                    for proc_name in tool_cfg.get("process_names", {}).get("macos", []):
+                    proc_names_map = tool_cfg.get("process_names", {})
+                    # WSL runs Linux; prefer "linux" key, fall back to "macos"
+                    # for backward compatibility (most CLI tool names are the
+                    # same on Linux and macOS).
+                    proc_names = proc_names_map.get("linux") or proc_names_map.get("macos", [])
+                    for proc_name in proc_names:
                         if proc_name in cmd:
                             matched_tool_names.add(tool_name)
                             break

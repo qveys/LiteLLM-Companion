@@ -39,6 +39,11 @@ ai_apps:
       windows: ["Code.exe"]
     category: code
     cost_per_hour: 0.40
+    # These process names match the IDE itself, not the AI plugin.
+    # Detection is a heuristic: the IDE is running, but AI usage
+    # is only active when the Copilot extension is installed.
+    requires_plugin: true
+    note: "Detects VS Code process; assumes GitHub Copilot extension is active"
 
   - name: JetBrains AI
     process_names:
@@ -46,6 +51,11 @@ ai_apps:
       windows: ["idea64.exe", "pycharm64.exe", "webstorm64.exe", "goland64.exe"]
     category: code
     cost_per_hour: 0.40
+    # These process names match the IDE itself, not the AI plugin.
+    # Detection is a heuristic: the IDE is running, but AI usage
+    # is only active when the JetBrains AI Assistant plugin is installed.
+    requires_plugin: true
+    note: "Detects JetBrains IDE process; assumes AI Assistant plugin is active"
 
   # Image / Creative
   - name: Midjourney
@@ -219,6 +229,7 @@ ai_cli_tools:
   - name: ollama
     process_names:
       macos: ["ollama"]
+      linux: ["ollama"]
       windows: ["ollama.exe"]
     command_patterns: ["ollama run", "ollama serve"]
     category: local
@@ -227,6 +238,7 @@ ai_cli_tools:
   - name: claude-code
     process_names:
       macos: ["claude"]
+      linux: ["claude"]
       windows: ["claude.exe"]
     command_patterns: ["claude"]
     category: code
@@ -235,6 +247,7 @@ ai_cli_tools:
   - name: github-copilot-cli
     process_names:
       macos: ["gh"]
+      linux: ["gh"]
       windows: ["gh.exe"]
     command_patterns: ["gh copilot"]
     category: code
@@ -243,6 +256,7 @@ ai_cli_tools:
   - name: aider
     process_names:
       macos: ["aider"]
+      linux: ["aider"]
       windows: ["aider.exe"]
     command_patterns: ["aider"]
     category: code
@@ -251,6 +265,7 @@ ai_cli_tools:
   - name: openai-cli
     process_names:
       macos: ["openai"]
+      linux: ["openai"]
       windows: ["openai.exe"]
     command_patterns: ["openai"]
     category: api
@@ -259,6 +274,7 @@ ai_cli_tools:
   - name: llm
     process_names:
       macos: ["llm"]
+      linux: ["llm"]
       windows: ["llm.exe"]
     command_patterns: ["llm chat", "llm prompt"]
     category: local
@@ -267,6 +283,7 @@ ai_cli_tools:
   - name: sgpt
     process_names:
       macos: ["sgpt"]
+      linux: ["sgpt"]
       windows: ["sgpt.exe"]
     command_patterns: ["sgpt"]
     category: chat
@@ -275,6 +292,7 @@ ai_cli_tools:
   - name: gemini-cli
     process_names:
       macos: ["gemini"]
+      linux: ["gemini"]
       windows: ["gemini.cmd"]
     command_patterns: ["gemini"]
     cmdline_patterns: ["gemini"]
@@ -284,6 +302,7 @@ ai_cli_tools:
   - name: codex-cli
     process_names:
       macos: ["codex"]
+      linux: ["codex"]
       windows: ["codex.exe"]
     command_patterns: ["codex"]
     cmdline_patterns: ["/codex", "codex "]
@@ -293,6 +312,7 @@ ai_cli_tools:
   - name: vibe
     process_names:
       macos: ["vibe"]
+      linux: ["vibe"]
       windows: ["vibe.exe"]
     command_patterns: ["vibe"]
     cmdline_patterns: ["vibe"]

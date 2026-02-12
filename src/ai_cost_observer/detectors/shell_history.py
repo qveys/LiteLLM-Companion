@@ -114,20 +114,24 @@ class ShellHistoryParser:
 
     def _count_and_report(self, commands: list[str]) -> None:
         """Count AI-related commands and report to telemetry."""
-        counts: dict[str, int] = {}
+        counts: dict[str, tuple[int, dict]] = {}  # tool_name -> (count, tool_cfg)
 
         for cmd in commands:
             for pattern, tool_cfg in self._patterns:
                 if pattern.search(cmd):
                     tool_name = tool_cfg["name"]
-                    counts[tool_name] = counts.get(tool_name, 0) + 1
+                    if tool_name in counts:
+                        counts[tool_name] = (counts[tool_name][0] + 1, tool_cfg)
+                    else:
+                        counts[tool_name] = (1, tool_cfg)
                     break  # one match per command
 
-        for tool_name, count in counts.items():
-            self.telemetry.cli_command_count.add(
-                count,
-                {"cli.name": tool_name},
-            )
+        for tool_name, (count, tool_cfg) in counts.items():
+            labels = {
+                "cli.name": tool_name,
+                "cli.category": tool_cfg.get("category", "unknown"),
+            }
+            self.telemetry.cli_command_count.add(count, labels)
             logger.debug("Shell history: {} new commands for {}", count, tool_name)
 
     def _load_offsets(self) -> None:

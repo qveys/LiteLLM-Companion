@@ -45,10 +45,10 @@ OTEL_METRICS = [
     ("ai.cli.active.duration",                "s",   "counter"),
     ("ai.cli.estimated.cost",                 "USD", "counter"),
     ("ai.cli.command.count",                  "1",   "counter"),
-    ("ai.tokens.input_total",                 "1",   "counter"),
-    ("ai.tokens.output_total",                "1",   "counter"),
-    ("ai.tokens.cost_usd_total",              "1",   "counter"),
-    ("ai.prompt.count_total",                 "1",   "counter"),
+    ("ai.tokens.input",                       "1",   "counter"),
+    ("ai.tokens.output",                      "1",   "counter"),
+    ("ai.tokens.cost_usd",                    "1",   "counter"),
+    ("ai.prompt.count",                       "1",   "counter"),
 ]
 
 UNIT_SUFFIX_MAP = {
@@ -254,10 +254,10 @@ class TestOtelToPrometheusConversion:
             "ai.cli.active.duration":               "ai_cli_active_duration_seconds_total",
             "ai.cli.estimated.cost":                "ai_cli_estimated_cost_USD_total",
             "ai.cli.command.count":                 "ai_cli_command_count_total",
-            "ai.tokens.input_total":                "ai_tokens_input_total",
-            "ai.tokens.output_total":               "ai_tokens_output_total",
-            "ai.tokens.cost_usd_total":             "ai_tokens_cost_usd_total",
-            "ai.prompt.count_total":                "ai_prompt_count_total",
+            "ai.tokens.input":                      "ai_tokens_input_total",
+            "ai.tokens.output":                     "ai_tokens_output_total",
+            "ai.tokens.cost_usd":                   "ai_tokens_cost_usd_total",
+            "ai.prompt.count":                      "ai_prompt_count_total",
         }
         assert EXPECTED_PROMETHEUS_NAMES == expected
 

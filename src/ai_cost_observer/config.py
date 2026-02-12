@@ -74,6 +74,21 @@ def _load_user_config(config_dir: Path) -> dict:
     return {}
 
 
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Recursively merge override into base dict.
+
+    For nested dicts, merges recursively instead of replacing the entire dict.
+    For all other types (lists, scalars), the override value replaces the base.
+    Returns the merged dict (mutates base in place).
+    """
+    for key, value in override.items():
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+            _deep_merge(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+
 def load_config() -> AppConfig:
     """Load configuration with hierarchy: built-in → user file → env vars."""
     builtin = _load_builtin_ai_config()
@@ -107,12 +122,12 @@ def load_config() -> AppConfig:
     config.ai_cli_tools = builtin.get("ai_cli_tools", [])
     config.api_intercept_patterns = builtin.get("api_intercept_patterns", [])
 
-    # Load token tracking config from built-in, merge user overrides
+    # Load token tracking config from built-in, deep-merge user overrides
     builtin_tt = builtin.get("token_tracking", {})
     if builtin_tt:
-        config.token_tracking.update(builtin_tt)
+        _deep_merge(config.token_tracking, builtin_tt)
     if "token_tracking" in user:
-        config.token_tracking.update(user["token_tracking"])
+        _deep_merge(config.token_tracking, user["token_tracking"])
 
     # User can add extra tools
     if "extra_ai_apps" in user:

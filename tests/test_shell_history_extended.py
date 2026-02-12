@@ -84,7 +84,9 @@ class TestBashHistoryParsing:
 
         parser.scan()
 
-        shell_telemetry.cli_command_count.add.assert_called_once_with(1, {"cli.name": "Ollama"})
+        shell_telemetry.cli_command_count.add.assert_called_once_with(
+            1, {"cli.name": "Ollama", "cli.category": "unknown"},
+        )
 
 
 class TestPowerShellHistoryParsing:

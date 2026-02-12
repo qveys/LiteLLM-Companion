@@ -36,6 +36,8 @@ class DesktopDetector:
         self._claimed_pids: set[int] = set()  # PIDs claimed in the last scan
         # Bug H1: track currently running apps for ObservableGauge callback
         self._running_apps: dict[str, dict] = {}  # app_name -> labels
+        # Track PIDs that have been primed for cpu_percent (first call returns 0)
+        self._primed_pids: set[int] = set()
 
         # Build process name → app config lookup
         self._process_map: dict[str, dict] = {}
@@ -96,7 +98,14 @@ class DesktopDetector:
 
                     # Collect resource usage (best effort)
                     try:
+                        pid = proc.info["pid"]
                         cpu = proc.cpu_percent(interval=0)
+                        # cpu_percent(interval=0) returns 0.0 on the first call
+                        # for a PID (no baseline yet). Prime it and skip the
+                        # value; subsequent scans will report a real reading.
+                        if pid not in self._primed_pids:
+                            self._primed_pids.add(pid)
+                            cpu = 0.0  # explicitly discard first-call value
                         mem = proc.memory_info().rss / (1024 * 1024)  # MB
                         cpu_by_app[app_name] = cpu_by_app.get(app_name, 0) + cpu
                         mem_by_app[app_name] = mem_by_app.get(app_name, 0) + mem
@@ -114,6 +123,9 @@ class DesktopDetector:
         for pids in found.values():
             self._claimed_pids.update(pids)
 
+        # Clean up primed PIDs for processes that no longer exist
+        self._primed_pids &= self._claimed_pids
+
         # Update metrics for each known app
         all_apps = set(found.keys()) | set(self._state.keys())
 
@@ -124,7 +136,12 @@ class DesktopDetector:
             if not app_cfg:
                 continue
 
-            labels = {"app.name": app_name, "app.category": app_cfg.get("category", "unknown")}
+            labels = {
+                "app.name": app_name,
+                "app.category": app_cfg.get("category", "unknown"),
+            }
+            if app_cfg.get("requires_plugin"):
+                labels["app.requires_plugin"] = "true"
 
             # Running state transitions (log only; metric via ObservableGauge)
             if is_running and not state.was_running:

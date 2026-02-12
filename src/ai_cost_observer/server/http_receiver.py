@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
+from collections import defaultdict
 
 from flask import Flask, jsonify, request
 from loguru import logger
@@ -14,6 +16,12 @@ from ai_cost_observer.telemetry import TelemetryManager
 # Token tracker reference (set after initialization in main.py)
 _token_tracker = None
 
+# --- Rate limiting and payload size constants ---
+MAX_PAYLOAD_BYTES = 1_048_576  # 1 MB max request body
+RATE_LIMIT_REQUESTS = 60       # max requests per window
+RATE_LIMIT_WINDOW_SECONDS = 60 # window duration
+MAX_EVENTS_PER_REQUEST = 100   # max events in a single batch
+
 
 def set_token_tracker(tracker) -> None:
     """Set the token tracker instance for API intercept handling."""
@@ -21,17 +29,52 @@ def set_token_tracker(tracker) -> None:
     _token_tracker = tracker
 
 
+class _RateLimiter:
+    """Simple in-memory per-IP sliding window rate limiter."""
+
+    def __init__(self, max_requests: int = RATE_LIMIT_REQUESTS,
+                 window_seconds: int = RATE_LIMIT_WINDOW_SECONDS) -> None:
+        self._max_requests = max_requests
+        self._window_seconds = window_seconds
+        self._requests: dict[str, list[float]] = defaultdict(list)
+        self._lock = threading.Lock()
+
+    def is_allowed(self, client_ip: str) -> bool:
+        """Check if a request from client_ip is allowed under the rate limit."""
+        now = time.monotonic()
+        cutoff = now - self._window_seconds
+
+        with self._lock:
+            timestamps = self._requests[client_ip]
+            # Remove old entries
+            self._requests[client_ip] = [t for t in timestamps if t > cutoff]
+            if len(self._requests[client_ip]) >= self._max_requests:
+                return False
+            self._requests[client_ip].append(now)
+            return True
+
+
 def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
     """Create the Flask app for receiving browser extension metrics."""
     app = Flask(__name__)
     app.config["TESTING"] = False
+    app.config["MAX_CONTENT_LENGTH"] = MAX_PAYLOAD_BYTES
 
     domain_lookup = {d["domain"]: d for d in config.ai_domains}
     _extension_connected = False
+    _rate_limiter = _RateLimiter()
 
     @app.before_request
-    def log_request():
+    def check_rate_limit_and_size():
+        """Enforce rate limiting and payload size on all POST requests."""
         logger.debug("{} {} from {}", request.method, request.path, request.remote_addr)
+
+        if request.method == "POST":
+            # Rate limiting (localhost only, but protects against runaway extensions)
+            client_ip = request.remote_addr or "unknown"
+            if not _rate_limiter.is_allowed(client_ip):
+                logger.warning("Rate limit exceeded for {}", client_ip)
+                return jsonify({"error": "Rate limit exceeded"}), 429
 
     @app.route("/", methods=["GET"])
     def root():
@@ -72,6 +115,8 @@ def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
         events = data.get("events", [])
         if not isinstance(events, list):
             return jsonify({"error": "events must be a list"}), 400
+        if len(events) > MAX_EVENTS_PER_REQUEST:
+            return jsonify({"error": f"Too many events (max {MAX_EVENTS_PER_REQUEST})"}), 400
 
         for event in events:
             domain = event.get("domain", "")
@@ -124,6 +169,8 @@ def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
         events = data.get("events", [])
         if not isinstance(events, list):
             return jsonify({"error": "events must be a list"}), 400
+        if len(events) > MAX_EVENTS_PER_REQUEST:
+            return jsonify({"error": f"Too many events (max {MAX_EVENTS_PER_REQUEST})"}), 400
 
         processed = 0
         for event in events:

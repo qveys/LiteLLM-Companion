@@ -80,17 +80,17 @@ def test_browser_history_parsing_and_sessioning(mock_config: AppConfig, mock_tel
     assert visit_count_args.args[1]["ai.domain"] == "test-ai.com"
 
     # Check duration estimation. Two sessions are expected.
-    # Session 1: (ts_last - ts_first) + 300s = ((-300) - (-600)) + 300 = 300 + 300 = 600s
-    # Session 2: (ts_last - ts_first) + 300s = ((-3600) - (-3600)) + 300 = 0 + 300 = 300s
-    # Total = 900s
+    # Session 1 (multi-visit): (ts_last - ts_first) + 300s = ((-300) - (-600)) + 300 = 600s
+    # Session 2 (single-visit): flat 60s estimate (Bug #11 fix: no +300s buffer)
+    # Total = 660s
     mock_telemetry.browser_domain_active_duration.add.assert_called_once()
     duration_args = mock_telemetry.browser_domain_active_duration.add.call_args
-    assert duration_args.args[0] == pytest.approx(900.0)
+    assert duration_args.args[0] == pytest.approx(660.0)
     assert duration_args.args[1]["ai.domain"] == "test-ai.com"
 
     # Check cost estimation
-    # Cost = cost_per_hour * (duration / 3600) = 4.0 * (900 / 3600) = 4.0 * 0.25 = 1.0
+    # Cost = cost_per_hour * (duration / 3600) = 4.0 * (660 / 3600)
     mock_telemetry.browser_domain_estimated_cost.add.assert_called_once()
     cost_args = mock_telemetry.browser_domain_estimated_cost.add.call_args
-    assert cost_args.args[0] == pytest.approx(1.0)
+    assert cost_args.args[0] == pytest.approx(4.0 * 660 / 3600)
     assert cost_args.args[1]["ai.domain"] == "test-ai.com"
