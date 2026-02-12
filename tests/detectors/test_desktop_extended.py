@@ -235,7 +235,12 @@ class TestDesktopCpuMemoryGauge:
     """Bug C3: CPU and memory metrics must use Gauge.set(), not Histogram.record()."""
 
     def test_cpu_memory_uses_set_not_record(self, mocker):
-        """desktop.py must call .set() on cpu/memory gauges, not .record()."""
+        """desktop.py must call .set() on cpu/memory gauges, not .record().
+
+        Bug #19: cpu_percent(interval=0) returns 0.0 on the first call for a
+        new PID (no baseline). The first scan primes the PID; the second scan
+        returns the real CPU value.
+        """
         apps = [
             {
                 "name": "ChatGPT",
@@ -255,13 +260,26 @@ class TestDesktopCpuMemoryGauge:
             return_value=None,
         )
 
+        # First scan: primes the PID (cpu reports 0.0)
+        detector.scan()
+
+        # First scan reports 0.0 for CPU (priming) but real value for memory
+        cpu_call_1 = telemetry.app_cpu_usage.set.call_args
+        mem_call_1 = telemetry.app_memory_usage.set.call_args
+        assert cpu_call_1[0][0] == 0.0  # priming: first call is 0.0
+        assert mem_call_1[0][0] == 512.0
+
+        telemetry.app_cpu_usage.set.reset_mock()
+        telemetry.app_memory_usage.set.reset_mock()
+
+        # Second scan: PID is primed, should report real CPU value
         detector.scan()
 
         # Gauge uses .set(), not .record()
         telemetry.app_cpu_usage.set.assert_called_once()
         telemetry.app_memory_usage.set.assert_called_once()
 
-        # Verify correct values were reported
+        # Verify correct values were reported on second scan
         cpu_call = telemetry.app_cpu_usage.set.call_args
         mem_call = telemetry.app_memory_usage.set.call_args
         assert cpu_call[0][0] == 25.0
