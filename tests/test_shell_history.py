@@ -76,21 +76,25 @@ def test_incremental_parsing(mock_config: AppConfig, mock_telemetry: Mock, tmp_p
     parser.scan()
     
     # It should have been called once for Ollama with a count of 1
-    mock_telemetry.cli_command_count.add.assert_called_once_with(1, {"cli.name": "Ollama"})
-    
+    mock_telemetry.cli_command_count.add.assert_called_once_with(
+        1, {"cli.name": "Ollama", "cli.category": "unknown"},
+    )
+
     # Reset the mock to check the next call
     mock_telemetry.cli_command_count.add.reset_mock()
-    
+
     # Add new content to the history file
     history_content_v2 = "claude -p 'new feature'\n"
     with open(history_file, "a", encoding="utf-8") as f:
         f.write(history_content_v2)
-        
+
     # Second scan
     parser.scan()
-    
+
     # It should now be called once for Claude-CLI with a count of 1
-    mock_telemetry.cli_command_count.add.assert_called_once_with(1, {"cli.name": "Claude-CLI"})
+    mock_telemetry.cli_command_count.add.assert_called_once_with(
+        1, {"cli.name": "Claude-CLI", "cli.category": "unknown"},
+    )
 
 
 def test_cc_c_compiler_not_matched(mock_config: AppConfig, mock_telemetry: Mock, tmp_path: Path):
