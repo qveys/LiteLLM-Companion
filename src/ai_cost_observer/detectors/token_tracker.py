@@ -101,8 +101,32 @@ class TokenTracker:
         self._file_offsets: dict[str, int] = {}
         self._last_scan_time: float = 0.0
 
+        # State file for persisting offsets across restarts
+        self._state_file = config.state_dir / "token_tracker_state.json"
+        self._load_state()
+
         # Token tracking config from ai_config
         self._tt_config = getattr(config, "token_tracking", {}) or {}
+
+    def _load_state(self) -> None:
+        """Load persisted state (file offsets, codex rowid) from disk."""
+        if self._state_file.exists():
+            try:
+                data = json.loads(self._state_file.read_text(encoding="utf-8"))
+                self._file_offsets = {k: int(v) for k, v in data.get("file_offsets", {}).items()}
+            except Exception:
+                logger.opt(exception=True).debug("Failed to load token tracker state")
+
+    def _save_state(self) -> None:
+        """Persist state (file offsets, codex rowid) to disk."""
+        try:
+            self._state_file.parent.mkdir(parents=True, exist_ok=True)
+            data = {
+                "file_offsets": self._file_offsets,
+            }
+            self._state_file.write_text(json.dumps(data), encoding="utf-8")
+        except Exception:
+            logger.opt(exception=True).debug("Failed to save token tracker state")
 
     def scan(self) -> None:
         """Run one scan cycle: read local files, extract tokens, emit metrics."""
@@ -116,6 +140,7 @@ class TokenTracker:
         except Exception:
             logger.opt(exception=True).error("Error scanning Codex data")
 
+        self._save_state()
         self._last_scan_time = time.monotonic()
 
     def _scan_claude_code(self) -> None:

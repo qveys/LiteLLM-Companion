@@ -266,6 +266,142 @@ class TestTokenTrackerClaudeCode:
         assert telemetry.tokens_input_total.add.call_count == 1
 
 
+class TestTokenTrackerOffsetPersistence:
+    def test_offsets_persist_across_restarts(self, tmp_path):
+        """File offsets survive tracker restart (new instance)."""
+        project_dir = tmp_path / ".claude" / "projects" / "test-project"
+        project_dir.mkdir(parents=True)
+        state_dir = tmp_path / "state"
+        state_dir.mkdir(parents=True)
+
+        entry1 = {"role": "assistant", "model": "claude-sonnet-4-5",
+                   "usage": {"input_tokens": 100, "output_tokens": 50}}
+        jsonl_file = project_dir / "session-persist.jsonl"
+        jsonl_file.write_text(json.dumps(entry1) + "\n")
+
+        config = AppConfig()
+        config.token_tracking = {}
+        config.state_dir = state_dir
+        telemetry = MagicMock()
+        telemetry.tokens_input_total = MagicMock()
+        telemetry.tokens_output_total = MagicMock()
+        telemetry.tokens_cost_usd_total = MagicMock()
+        telemetry.prompt_count_total = MagicMock()
+
+        import unittest.mock
+
+        # First tracker instance: scan once
+        tracker1 = TokenTracker(config, telemetry)
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker1.scan()
+
+        assert telemetry.tokens_input_total.add.call_count == 1
+
+        # Simulate restart: create a NEW tracker instance
+        telemetry.reset_mock()
+        tracker2 = TokenTracker(config, telemetry)
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker2.scan()
+
+        # Should NOT re-process old data
+        telemetry.tokens_input_total.add.assert_not_called()
+
+    def test_offsets_state_file_created(self, tmp_path):
+        """Scanning creates a state file in state_dir."""
+        project_dir = tmp_path / ".claude" / "projects" / "test-project"
+        project_dir.mkdir(parents=True)
+        state_dir = tmp_path / "state"
+        state_dir.mkdir(parents=True)
+
+        entry = {"role": "assistant", "model": "gpt-4o",
+                 "usage": {"input_tokens": 50, "output_tokens": 25}}
+        jsonl_file = project_dir / "session-state.jsonl"
+        jsonl_file.write_text(json.dumps(entry) + "\n")
+
+        config = AppConfig()
+        config.token_tracking = {}
+        config.state_dir = state_dir
+        telemetry = MagicMock()
+        telemetry.tokens_input_total = MagicMock()
+        telemetry.tokens_output_total = MagicMock()
+        telemetry.tokens_cost_usd_total = MagicMock()
+        telemetry.prompt_count_total = MagicMock()
+
+        tracker = TokenTracker(config, telemetry)
+
+        import unittest.mock
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker.scan()
+
+        state_file = state_dir / "token_tracker_state.json"
+        assert state_file.exists()
+        data = json.loads(state_file.read_text())
+        assert "file_offsets" in data
+
+    def test_new_data_after_restart_is_processed(self, tmp_path):
+        """After restart, new data appended to JSONL is still processed."""
+        project_dir = tmp_path / ".claude" / "projects" / "test-project"
+        project_dir.mkdir(parents=True)
+        state_dir = tmp_path / "state"
+        state_dir.mkdir(parents=True)
+
+        entry1 = {"role": "assistant", "model": "claude-sonnet-4-5",
+                   "usage": {"input_tokens": 100, "output_tokens": 50}}
+        jsonl_file = project_dir / "session-new.jsonl"
+        jsonl_file.write_text(json.dumps(entry1) + "\n")
+
+        config = AppConfig()
+        config.token_tracking = {}
+        config.state_dir = state_dir
+        telemetry = MagicMock()
+        telemetry.tokens_input_total = MagicMock()
+        telemetry.tokens_output_total = MagicMock()
+        telemetry.tokens_cost_usd_total = MagicMock()
+        telemetry.prompt_count_total = MagicMock()
+
+        import unittest.mock
+
+        # First instance: scan
+        tracker1 = TokenTracker(config, telemetry)
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker1.scan()
+
+        assert telemetry.tokens_input_total.add.call_count == 1
+
+        # Append new data
+        entry2 = {"role": "assistant", "model": "gpt-4o",
+                   "usage": {"input_tokens": 200, "output_tokens": 100}}
+        with open(jsonl_file, "a") as f:
+            f.write(json.dumps(entry2) + "\n")
+
+        # Simulate restart
+        telemetry.reset_mock()
+        tracker2 = TokenTracker(config, telemetry)
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker2.scan()
+
+        # Should only process the NEW entry
+        assert telemetry.tokens_input_total.add.call_count == 1
+        telemetry.tokens_input_total.add.assert_called_once_with(
+            200, {"tool.name": "claude-code", "model.name": "gpt-4o"}
+        )
+
+
 class TestTokenTrackerApiIntercept:
     def test_record_api_intercept(self):
         """record_api_intercept emits correct OTel metrics."""
