@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: AI Cost Observer
+    orgId: 1
+    folder: AI Cost Observer
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

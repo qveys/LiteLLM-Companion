@@ -1,0 +1,611 @@
+{
+  "id": null,
+  "uid": "browser-ai-usage",
+  "title": "AI Cost Observer — Browser AI Usage",
+  "description": "Browser-based AI tool usage tracking: active duration, visit counts, and domain breakdowns.",
+  "tags": ["ai-cost-observer"],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "version": 1,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "weekStart": "",
+  "templating": {
+    "list": [
+      {
+        "name": "host",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-vps"
+        },
+        "definition": "label_values(ai_browser_domain_active_duration_seconds_total, host_name)",
+        "query": {
+          "query": "label_values(ai_browser_domain_active_duration_seconds_total, host_name)",
+          "refId": "StandardVariableQuery"
+        },
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "allValue": ".*"
+      },
+      {
+        "name": "browser",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-vps"
+        },
+        "definition": "label_values(ai_browser_domain_active_duration_seconds_total, browser_name)",
+        "query": {
+          "query": "label_values(ai_browser_domain_active_duration_seconds_total, browser_name)",
+          "refId": "StandardVariableQuery"
+        },
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "allValue": ".*"
+      },
+      {
+        "name": "category",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-vps"
+        },
+        "definition": "label_values(ai_browser_domain_active_duration_seconds_total, ai_category)",
+        "query": {
+          "query": "label_values(ai_browser_domain_active_duration_seconds_total, ai_category)",
+          "refId": "StandardVariableQuery"
+        },
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "allValue": ".*"
+      },
+      {
+        "name": "source",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-vps"
+        },
+        "definition": "label_values(ai_browser_domain_active_duration_seconds_total, usage_source)",
+        "query": {
+          "query": "label_values(ai_browser_domain_active_duration_seconds_total, usage_source)",
+          "refId": "StandardVariableQuery"
+        },
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "allValue": ".*"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Total Browser AI Time Today",
+      "description": "Total active duration spent on AI browser domains today.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-vps"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-vps"
+          },
+          "expr": "sum(increase(ai_browser_domain_active_duration_seconds_total{host_name=~\"$host\", browser_name=~\"$browser\", ai_category=~\"$category\", usage_source=~\"$source\"}[1d]))",
+          "legendFormat": "",
+          "refId": "A",
+          "editorMode": "code",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3600 },
+              { "color": "orange", "value": 7200 },
+              { "color": "red", "value": 14400 }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true,
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Total Visits Today",
+      "description": "Total number of AI domain visits recorded today.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-vps"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-vps"
+          },
+          "expr": "sum(increase(ai_browser_domain_visit_count_total{host_name=~\"$host\", browser_name=~\"$browser\", ai_category=~\"$category\", usage_source=~\"$source\"}[1d]))",
+          "legendFormat": "",
+          "refId": "A",
+          "editorMode": "code",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "orange", "value": 100 },
+              { "color": "red", "value": 200 }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true,
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Duration by Domain",
+      "description": "Active duration per AI domain over time, broken down by domain and usage source.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-vps"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-vps"
+          },
+          "expr": "increase(ai_browser_domain_active_duration_seconds_total{host_name=~\"$host\", browser_name=~\"$browser\", ai_category=~\"$category\", usage_source=~\"$source\"}[$__rate_interval])",
+          "legendFormat": "{{ai_domain}} ({{usage_source}})",
+          "refId": "A",
+          "editorMode": "code",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "auto",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["sum"]
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Duration by Category",
+      "description": "Total active duration today grouped by AI category.",
+      "type": "piechart",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-vps"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 10,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-vps"
+          },
+          "expr": "sum by(ai_category)(increase(ai_browser_domain_active_duration_seconds_total{host_name=~\"$host\", browser_name=~\"$browser\", ai_category=~\"$category\", usage_source=~\"$source\"}[1d]))",
+          "legendFormat": "{{ai_category}}",
+          "refId": "A",
+          "editorMode": "code",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "pieType": "pie",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Domain Details",
+      "description": "Detailed table of AI domain usage today with domain, browser, source, and duration.",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-vps"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 14,
+        "x": 10,
+        "y": 16
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-vps"
+          },
+          "expr": "increase(ai_browser_domain_active_duration_seconds_total{host_name=~\"$host\", browser_name=~\"$browser\", ai_category=~\"$category\", usage_source=~\"$source\"}[1d])",
+          "legendFormat": "",
+          "refId": "A",
+          "editorMode": "code",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ai_domain"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Domain"
+              },
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "browser_name"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Browser"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "usage_source"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Source"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Duration"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": true,
+          "reducer": ["sum"],
+          "countRows": false,
+          "fields": ["Value"]
+        },
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Duration"
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": ["ai_domain", "browser_name", "usage_source", "Value"]
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Value",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Overview",
+      "type": "link",
+      "url": "/d/ai-cost-overview",
+      "icon": "dashboard",
+      "tooltip": "AI Cost Observer Overview"
+    },
+    {
+      "title": "Unified Cost",
+      "type": "link",
+      "url": "/d/unified-cost",
+      "icon": "dashboard",
+      "tooltip": "Unified Cost Dashboard"
+    },
+    {
+      "title": "Token Usage",
+      "type": "link",
+      "url": "/d/token-usage",
+      "icon": "dashboard",
+      "tooltip": "Token Usage Dashboard"
+    }
+  ]
+}
