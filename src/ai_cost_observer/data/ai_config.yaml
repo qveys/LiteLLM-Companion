@@ -1,0 +1,336 @@
+# AI tool definitions — apps, browser domains, and CLI tools
+# Used by detectors to identify AI-related activity
+# Cost rates are rough estimates in USD/hour of active use
+
+ai_apps:
+  # Chat / Assistant
+  - name: ChatGPT
+    process_names:
+      macos: ["ChatGPT"]
+      windows: ["ChatGPT.exe"]
+    category: chat
+    cost_per_hour: 0.50
+
+  - name: Claude
+    process_names:
+      macos: ["Claude"]
+      windows: ["Claude.exe"]
+    category: chat
+    cost_per_hour: 0.60
+
+  # IDE / Code assistants
+  - name: Cursor
+    process_names:
+      macos: ["Cursor Helper (Renderer)", "Cursor"]
+      windows: ["Cursor.exe"]
+    category: code
+    cost_per_hour: 0.80
+
+  - name: Windsurf
+    process_names:
+      macos: ["Windsurf", "Windsurf Helper (Renderer)"]
+      windows: ["Windsurf.exe"]
+    category: code
+    cost_per_hour: 0.60
+
+  - name: GitHub Copilot (VS Code)
+    process_names:
+      macos: ["Code Helper (Renderer)"]
+      windows: ["Code.exe"]
+    category: code
+    cost_per_hour: 0.40
+
+  - name: JetBrains AI
+    process_names:
+      macos: ["idea", "pycharm", "webstorm", "goland", "clion", "rider"]
+      windows: ["idea64.exe", "pycharm64.exe", "webstorm64.exe", "goland64.exe"]
+    category: code
+    cost_per_hour: 0.40
+
+  # Image / Creative
+  - name: Midjourney
+    process_names:
+      macos: ["Midjourney"]
+      windows: ["Midjourney.exe"]
+    category: image
+    cost_per_hour: 1.20
+
+  # Local AI
+  - name: LM Studio
+    process_names:
+      macos: ["LM Studio"]
+      windows: ["LM Studio.exe"]
+    category: local
+    cost_per_hour: 0.00
+
+  - name: Jan
+    process_names:
+      macos: ["Jan"]
+      windows: ["Jan.exe"]
+    category: local
+    cost_per_hour: 0.00
+
+  - name: Ollama (GUI)
+    process_names:
+      macos: ["Ollama"]
+      windows: ["Ollama.exe"]
+    category: local
+    cost_per_hour: 0.00
+
+  - name: Perplexity
+    process_names:
+      macos: ["Perplexity"]
+      windows: ["Perplexity.exe"]
+    category: search
+    cost_per_hour: 0.40
+
+  - name: Msty
+    process_names:
+      macos: ["Msty"]
+    category: chat
+    cost_per_hour: 0.00
+
+  - name: Pieces
+    process_names:
+      macos: ["Pieces OS", "Pieces for Developers"]
+      windows: ["Pieces OS.exe"]
+    category: code
+    cost_per_hour: 0.20
+
+ai_domains:
+  # OpenAI
+  - domain: chatgpt.com
+    category: chat
+    cost_per_hour: 0.50
+  - domain: chat.openai.com
+    category: chat
+    cost_per_hour: 0.50
+  - domain: platform.openai.com
+    category: api
+    cost_per_hour: 1.00
+
+  # Anthropic
+  - domain: claude.ai
+    category: chat
+    cost_per_hour: 0.60
+  - domain: console.anthropic.com
+    category: api
+    cost_per_hour: 1.00
+
+  # Google
+  - domain: gemini.google.com
+    category: chat
+    cost_per_hour: 0.40
+  - domain: aistudio.google.com
+    category: api
+    cost_per_hour: 0.80
+
+  # Other chat
+  - domain: poe.com
+    category: chat
+    cost_per_hour: 0.30
+  - domain: perplexity.ai
+    category: search
+    cost_per_hour: 0.40
+  - domain: you.com
+    category: search
+    cost_per_hour: 0.20
+
+  # Code
+  - domain: github.com/copilot
+    category: code
+    cost_per_hour: 0.40
+  - domain: idx.dev
+    category: code
+    cost_per_hour: 0.30
+  - domain: replit.com
+    category: code
+    cost_per_hour: 0.50
+  - domain: v0.dev
+    category: code
+    cost_per_hour: 0.60
+  - domain: bolt.new
+    category: code
+    cost_per_hour: 0.50
+  - domain: lovable.dev
+    category: code
+    cost_per_hour: 0.50
+
+  # Image / Creative
+  - domain: midjourney.com
+    category: image
+    cost_per_hour: 1.20
+  - domain: leonardo.ai
+    category: image
+    cost_per_hour: 0.80
+  - domain: runwayml.com
+    category: video
+    cost_per_hour: 2.00
+  - domain: elevenlabs.io
+    category: audio
+    cost_per_hour: 0.60
+  - domain: suno.com
+    category: audio
+    cost_per_hour: 0.40
+
+  # Additional AI services
+  - domain: phind.com
+    name: Phind
+    category: code
+    cost_per_hour: 0.30
+  - domain: copilot.microsoft.com
+    name: Microsoft Copilot
+    category: chat
+    cost_per_hour: 0.40
+  - domain: deepseek.com
+    name: DeepSeek
+    category: chat
+    cost_per_hour: 0.20
+  - domain: groq.com
+    name: Groq
+    category: chat
+    cost_per_hour: 0.10
+  - domain: together.ai
+    name: Together AI
+    category: code
+    cost_per_hour: 0.30
+  - domain: huggingface.co
+    name: HuggingFace
+    category: code
+    cost_per_hour: 0.20
+  - domain: pi.ai
+    name: Pi
+    category: chat
+    cost_per_hour: 0.20
+  - domain: character.ai
+    name: Character AI
+    category: chat
+    cost_per_hour: 0.20
+  - domain: labs.google
+    name: Google Labs
+    category: code
+    cost_per_hour: 0.40
+  - domain: cohere.com
+    name: Cohere
+    category: code
+    cost_per_hour: 0.30
+
+ai_cli_tools:
+  - name: ollama
+    process_names:
+      macos: ["ollama"]
+      windows: ["ollama.exe"]
+    command_patterns: ["ollama run", "ollama serve"]
+    category: local
+    cost_per_hour: 0.00
+
+  - name: claude-code
+    process_names:
+      macos: ["claude"]
+      windows: ["claude.exe"]
+    command_patterns: ["claude", "cc"]
+    category: code
+    cost_per_hour: 1.00
+
+  - name: github-copilot-cli
+    process_names:
+      macos: ["gh"]
+      windows: ["gh.exe"]
+    command_patterns: ["gh copilot"]
+    category: code
+    cost_per_hour: 0.40
+
+  - name: aider
+    process_names:
+      macos: ["aider"]
+      windows: ["aider.exe"]
+    command_patterns: ["aider"]
+    category: code
+    cost_per_hour: 0.80
+
+  - name: openai-cli
+    process_names:
+      macos: ["openai"]
+      windows: ["openai.exe"]
+    command_patterns: ["openai"]
+    category: api
+    cost_per_hour: 0.50
+
+  - name: llm
+    process_names:
+      macos: ["llm"]
+      windows: ["llm.exe"]
+    command_patterns: ["llm chat", "llm prompt"]
+    category: local
+    cost_per_hour: 0.10
+
+  - name: sgpt
+    process_names:
+      macos: ["sgpt"]
+      windows: ["sgpt.exe"]
+    command_patterns: ["sgpt"]
+    category: chat
+    cost_per_hour: 0.30
+
+  - name: gemini-cli
+    process_names:
+      macos: ["gemini"]
+      windows: ["gemini.cmd"]
+    command_patterns: ["gemini"]
+    cmdline_patterns: ["gemini"]
+    category: code
+    cost_per_hour: 0.80
+
+  - name: codex-cli
+    process_names:
+      macos: ["codex"]
+      windows: ["codex.exe"]
+    command_patterns: ["codex"]
+    cmdline_patterns: ["/codex", "codex "]
+    category: code
+    cost_per_hour: 1.00
+
+  - name: vibe
+    process_names:
+      macos: ["vibe"]
+      windows: ["vibe.exe"]
+    command_patterns: ["vibe"]
+    cmdline_patterns: ["vibe"]
+    category: code
+    cost_per_hour: 0.60
+
+api_intercept_patterns:
+  - url_prefix: "https://api.anthropic.com/v1/messages"
+    tool: "claude-web"
+  - url_prefix: "https://api.openai.com/v1/chat/completions"
+    tool: "chatgpt-web"
+  - url_prefix: "https://generativelanguage.googleapis.com"
+    tool: "gemini-web"
+  - url_prefix: "https://api.deepseek.com/v1/chat/completions"
+    tool: "deepseek-web"
+  - url_prefix: "https://api.groq.com/openai/v1/chat/completions"
+    tool: "groq-web"
+  - url_prefix: "https://api.cohere.ai/v2/chat"
+    tool: "cohere-web"
+  - url_prefix: "https://api.together.xyz/v1/chat/completions"
+    tool: "together-web"
+  - url_prefix: "https://api-inference.huggingface.co/models"
+    tool: "huggingface-web"
+  - url_prefix: "https://api.mistral.ai/v1/chat/completions"
+    tool: "mistral-web"
+  - url_prefix: "https://api.perplexity.ai/chat/completions"
+    tool: "perplexity-web"
+
+token_tracking:
+  enabled: true
+  storage_path: auto
+  api_polling_interval_seconds: 300
+  retention_days: 90
+  encrypt_prompts: true
+  capture_prompt_text: true
+  capture_response_text: true
+  sources:
+    claude_code: true
+    codex: true
+    gemini: true
+    browser_extension: true
