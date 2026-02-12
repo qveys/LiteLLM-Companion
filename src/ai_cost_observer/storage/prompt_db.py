@@ -8,9 +8,8 @@ import os
 import platform
 import socket
 import sqlite3
-import time
 import threading
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from loguru import logger

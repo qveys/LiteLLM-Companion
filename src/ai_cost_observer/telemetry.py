@@ -22,7 +22,7 @@ from ai_cost_observer.config import AppConfig
 
 def _create_exporter(config: AppConfig) -> MetricExporter:
     """Create an OTLP metric exporter based on config and environment."""
-    protocol = os.environ.get("OTEL_EXPORTER_OTLP_METRICS_PROTOCOL", 
+    protocol = os.environ.get("OTEL_EXPORTER_OTLP_METRICS_PROTOCOL",
                             os.environ.get("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"))
 
     headers = {}
@@ -33,7 +33,7 @@ def _create_exporter(config: AppConfig) -> MetricExporter:
         logger.debug("Using OTLP/HTTP JSON exporter.")
         from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
         return OTLPMetricExporter(endpoint=config.otel_endpoint, headers=headers)
-    
+
     logger.debug("Using OTLP/gRPC exporter (default).")
     from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
     grpc_endpoint = config.otel_endpoint.replace("http://", "").replace("https://", "").split("/")[0]

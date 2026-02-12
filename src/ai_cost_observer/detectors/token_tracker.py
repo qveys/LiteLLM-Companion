@@ -228,7 +228,6 @@ class TokenTracker:
         # Store in prompt DB if available
         if self.prompt_db:
             prompt_text = None
-            response_text = None
 
             # Extract prompt/response text if configured
             if self._tt_config.get("capture_prompt_text", True):
