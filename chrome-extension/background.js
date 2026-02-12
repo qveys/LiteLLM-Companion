@@ -12,6 +12,7 @@ const CONFIG_REFRESH_MINUTES = 5;
 const ALARM_NAME = "export-metrics";
 const CONFIG_ALARM_NAME = "refresh-config";
 const STORAGE_PENDING_DELTAS_KEY = "pendingDeltas";
+const STORAGE_PENDING_TOKEN_EVENTS_KEY = "pendingTokenEvents";
 const STORAGE_EXTENSION_CONFIG_KEY = "extensionConfig";
 
 // --- Hardcoded fallback defaults (used when agent is offline and no cache) ---
@@ -130,8 +131,31 @@ async function loadExtensionConfig() {
   console.log("Extension config using hardcoded defaults:", activeDomains.length, "domains,", activeApiPatterns.length, "API patterns");
 }
 
-// Pending token intercept events
+// Pending token intercept events (persisted to chrome.storage.local)
 let pendingTokenEvents = [];
+let pendingTokenEventsLoaded = false;
+
+async function ensurePendingTokenEventsLoaded() {
+  if (pendingTokenEventsLoaded) return;
+  try {
+    const stored = await chrome.storage.local.get([STORAGE_PENDING_TOKEN_EVENTS_KEY]);
+    const raw = stored[STORAGE_PENDING_TOKEN_EVENTS_KEY];
+    if (Array.isArray(raw)) {
+      pendingTokenEvents = raw;
+    }
+  } catch {
+    // Storage read failed — start with empty array
+  }
+  pendingTokenEventsLoaded = true;
+}
+
+async function persistPendingTokenEvents() {
+  try {
+    await chrome.storage.local.set({ [STORAGE_PENDING_TOKEN_EVENTS_KEY]: pendingTokenEvents });
+  } catch {
+    // Storage write failed — events remain in memory
+  }
+}
 
 // Current session tracking
 let currentDomain = null;
@@ -356,6 +380,7 @@ chrome.webRequest.onCompleted.addListener(
           input_tokens: 0,
           output_tokens: 0,
         });
+        void persistPendingTokenEvents();
         break;
       }
     }
@@ -367,6 +392,8 @@ chrome.webRequest.onCompleted.addListener(
  * Export intercepted token events to the local agent.
  */
 async function exportTokenEvents() {
+  await ensurePendingTokenEventsLoaded();
+
   if (pendingTokenEvents.length === 0) return;
 
   const events = pendingTokenEvents;
@@ -382,12 +409,15 @@ async function exportTokenEvents() {
     if (!response.ok) {
       throw new Error(`Agent rejected token events: HTTP ${response.status}`);
     }
+    // Successfully sent — clear from storage
+    await persistPendingTokenEvents();
   } catch (error) {
     // Agent is down — re-queue events for next cycle
     if (error.message && error.message.includes("Failed to fetch")) {
       console.warn("Agent not reachable for token export. Will retry next cycle.");
     }
     pendingTokenEvents = events.concat(pendingTokenEvents);
+    await persistPendingTokenEvents();
   }
 }
 
@@ -468,6 +498,8 @@ async function initializeState() {
   // Load dynamic config from agent (or cache, or defaults)
   await loadExtensionConfig();
 
+  // Restore persisted state from chrome.storage.local
+  await ensurePendingTokenEventsLoaded();
   await withStateLock(async () => {
     await ensurePendingDeltasLoaded();
   });
