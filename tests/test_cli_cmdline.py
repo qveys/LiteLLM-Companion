@@ -17,6 +17,7 @@ def _make_config(cli_tools):
 def _make_telemetry():
     tm = MagicMock()
     tm.cli_running = MagicMock()
+    tm.set_running_cli = MagicMock()
     tm.cli_active_duration = MagicMock()
     tm.cli_estimated_cost = MagicMock()
     return tm
@@ -50,9 +51,9 @@ class TestCLIDetectorCmdlineMatching:
         with patch("psutil.process_iter", return_value=procs):
             detector.scan()
 
-        telemetry.cli_running.add.assert_called_once_with(
-            1, {"cli.name": "claude-code", "cli.category": "code"}
-        )
+        # Bug H1: check snapshot
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "claude-code" in snapshot
 
     def test_match_by_cmdline_pattern(self):
         """Processes running as 'node' should match via cmdline_patterns."""
@@ -77,9 +78,9 @@ class TestCLIDetectorCmdlineMatching:
         with patch("psutil.process_iter", return_value=procs):
             detector.scan()
 
-        telemetry.cli_running.add.assert_called_once_with(
-            1, {"cli.name": "gemini-cli", "cli.category": "code"}
-        )
+        # Bug H1: check snapshot
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "gemini-cli" in snapshot
 
     def test_no_match_when_cmdline_doesnt_contain_pattern(self):
         """Random node processes should not match."""
@@ -100,7 +101,9 @@ class TestCLIDetectorCmdlineMatching:
         with patch("psutil.process_iter", return_value=procs):
             detector.scan()
 
-        telemetry.cli_running.add.assert_not_called()
+        # Bug H1: check snapshot is empty
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "gemini-cli" not in snapshot
 
     def test_process_name_match_takes_priority(self):
         """If both process name and cmdline match, process name wins (no double count)."""
@@ -121,8 +124,10 @@ class TestCLIDetectorCmdlineMatching:
         with patch("psutil.process_iter", return_value=procs):
             detector.scan()
 
-        # Should be called exactly once, not twice
-        telemetry.cli_running.add.assert_called_once()
+        # Bug H1: should appear exactly once in snapshot
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert len(snapshot) == 1
+        assert "claude-code" in snapshot
 
     def test_vibe_detected_via_cmdline(self):
         """Vibe running as Python should be detected via cmdline."""
@@ -143,9 +148,9 @@ class TestCLIDetectorCmdlineMatching:
         with patch("psutil.process_iter", return_value=procs):
             detector.scan()
 
-        telemetry.cli_running.add.assert_called_once_with(
-            1, {"cli.name": "vibe", "cli.category": "code"}
-        )
+        # Bug H1: check snapshot
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "vibe" in snapshot
 
     def test_empty_cmdline_no_crash(self):
         """Processes with empty or None cmdline should not crash."""
@@ -169,4 +174,6 @@ class TestCLIDetectorCmdlineMatching:
         with patch("psutil.process_iter", return_value=procs):
             detector.scan()  # Should not raise
 
-        telemetry.cli_running.add.assert_not_called()
+        # Bug H1: check snapshot is empty
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert len(snapshot) == 0

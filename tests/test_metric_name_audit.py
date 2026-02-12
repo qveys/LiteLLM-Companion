@@ -14,7 +14,7 @@ NO namespace configured):
        "1"   -> (nothing)
   3. Counter (monotonic Sum) appends "_total" **unless the name already ends
      with _total** (deduplication per OTel spec).
-  4. UpDownCounter (non-monotonic Sum) does NOT append "_total".
+  4. Gauge / ObservableGauge / UpDownCounter does NOT append "_total".
   5. Histogram generates base name + "_bucket" / "_sum" / "_count".
 """
 from __future__ import annotations
@@ -33,15 +33,15 @@ import pytest
 # Each entry: (otel_name, unit, otel_type, expected_prometheus_base_name)
 # otel_type is one of: "counter", "up_down_counter", "histogram"
 OTEL_METRICS = [
-    ("ai.app.running",                        "1",   "up_down_counter"),
+    ("ai.app.running",                        "1",   "observable_gauge"),
     ("ai.app.active.duration",                "s",   "counter"),
-    ("ai.app.cpu.usage",                      "%",   "histogram"),
-    ("ai.app.memory.usage",                   "MB",  "histogram"),
+    ("ai.app.cpu.usage",                      "%",   "gauge"),
+    ("ai.app.memory.usage",                   "MB",  "gauge"),
     ("ai.app.estimated.cost",                 "USD", "counter"),
     ("ai.browser.domain.active.duration",     "s",   "counter"),
     ("ai.browser.domain.visit.count",         "1",   "counter"),
     ("ai.browser.domain.estimated.cost",      "USD", "counter"),
-    ("ai.cli.running",                        "1",   "up_down_counter"),
+    ("ai.cli.running",                        "1",   "observable_gauge"),
     ("ai.cli.active.duration",                "s",   "counter"),
     ("ai.cli.estimated.cost",                 "USD", "counter"),
     ("ai.cli.command.count",                  "1",   "counter"),
@@ -226,8 +226,8 @@ class TestOtelToPrometheusConversion:
         # Counter must end with _total
         if otel_type == "counter":
             assert prom.endswith("_total"), f"{prom} should end with _total"
-        # UpDownCounter must NOT end with _total
-        if otel_type == "up_down_counter":
+        # Gauge/ObservableGauge must NOT end with _total
+        if otel_type in ("gauge", "observable_gauge"):
             assert not prom.endswith("_total"), f"{prom} should NOT end with _total"
 
     def test_no_double_total_suffix(self):

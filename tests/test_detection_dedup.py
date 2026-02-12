@@ -46,6 +46,7 @@ def _make_telemetry() -> MagicMock:
     """Create a minimal mock TelemetryManager for CLIDetector."""
     tm = MagicMock()
     tm.cli_running = MagicMock()
+    tm.set_running_cli = MagicMock()
     tm.cli_active_duration = MagicMock()
     tm.cli_estimated_cost = MagicMock()
     return tm
@@ -115,7 +116,9 @@ class TestCLIDesktopDedup:
 
         detector.scan()
 
-        telemetry.cli_running.add.assert_not_called()
+        # Bug H1: check snapshot instead of .add()
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert len(snapshot) == 0
 
     def test_cli_detects_unclaimed_pid(self, mocker):
         """PID NOT claimed by desktop detector is detected by CLI detector."""
@@ -130,10 +133,9 @@ class TestCLIDesktopDedup:
 
         detector.scan()
 
-        telemetry.cli_running.add.assert_called_once()
-        call_args = telemetry.cli_running.add.call_args
-        assert call_args[0][0] == 1  # add(1, labels) -- tool started
-        assert call_args[0][1]["cli.name"] == "claude-code"
+        # Bug H1: check snapshot instead of .add()
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "claude-code" in snapshot
 
     def test_ollama_not_double_counted_via_pid_dedup(self, mocker):
         """Ollama PID claimed by desktop is NOT double-counted by CLI (the core bug fix).
@@ -155,7 +157,8 @@ class TestCLIDesktopDedup:
         detector.scan()
 
         # CLI detector should NOT detect these PIDs (already claimed by desktop)
-        telemetry.cli_running.add.assert_not_called()
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert len(snapshot) == 0
 
     def test_ollama_name_dedup_fallback_without_desktop_detector(self, mocker):
         """Without a desktop_detector, name-based dedup (case-insensitive) prevents
@@ -173,7 +176,9 @@ class TestCLIDesktopDedup:
 
         detector.scan()
 
-        telemetry.cli_running.add.assert_not_called()
+        # Bug H1: check snapshot
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert len(snapshot) == 0
 
     def test_claude_cli_detected_alongside_desktop_via_pid_dedup(self, mocker):
         """Claude CLI (different PID) is detected even when Claude GUI is running.
@@ -192,10 +197,9 @@ class TestCLIDesktopDedup:
 
         detector.scan()
 
-        telemetry.cli_running.add.assert_called_once()
-        call_args = telemetry.cli_running.add.call_args
-        assert call_args[0][0] == 1
-        assert call_args[0][1]["cli.name"] == "claude-code"
+        # Bug H1: check snapshot
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "claude-code" in snapshot
 
 
 # ---------------------------------------------------------------------------
@@ -231,10 +235,11 @@ class TestCodexCmdlinePatterns:
         detector.scan()
 
         # "codecoverage" does NOT contain "/codex" or "codex " -- should not match
-        telemetry.cli_running.add.assert_not_called()
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "codex-cli" not in snapshot
 
         # Reset
-        telemetry.cli_running.add.reset_mock()
+        telemetry.set_running_cli.reset_mock()
 
         # Actual codex CLI usage: "codex chat" contains "codex " (with trailing space)
         codex_proc = _fake_process(
@@ -246,10 +251,9 @@ class TestCodexCmdlinePatterns:
 
         detector.scan()
 
-        telemetry.cli_running.add.assert_called_once()
-        call_args = telemetry.cli_running.add.call_args
-        assert call_args[0][0] == 1
-        assert call_args[0][1]["cli.name"] == "codex-cli"
+        # Bug H1: check snapshot
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "codex-cli" in snapshot
 
     def test_codex_cmdline_pattern_matches_path_prefix(self, mocker):
         """A cmdline containing '/codex' (absolute path to codex binary) IS matched."""
@@ -267,9 +271,9 @@ class TestCodexCmdlinePatterns:
 
         detector.scan()
 
-        telemetry.cli_running.add.assert_called_once()
-        call_args = telemetry.cli_running.add.call_args
-        assert call_args[0][1]["cli.name"] == "codex-cli"
+        # Bug H1: check snapshot
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "codex-cli" in snapshot
 
     def test_codex_cmdline_patterns_are_tightened(self):
         """Verify the actual codex-cli patterns in config are ['/codex', 'codex '], not the old broad ['codex']."""

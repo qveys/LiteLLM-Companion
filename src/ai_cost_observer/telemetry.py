@@ -8,8 +8,12 @@ from typing import Optional
 
 from loguru import logger
 from opentelemetry import metrics
+from opentelemetry.metrics import Observation
 from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader, MetricExporter
+from opentelemetry.sdk.metrics.export import (
+    MetricExporter,
+    PeriodicExportingMetricReader,
+)
 from opentelemetry.sdk.resources import Resource
 
 from ai_cost_observer import __version__
@@ -63,25 +67,92 @@ class TelemetryManager:
         metrics.set_meter_provider(self.provider)
         self.meter = self.provider.get_meter("ai-cost-observer", __version__)
 
+        # --- Snapshots for ObservableGauge callbacks (Bug H1) ---
+        # Detectors write to these dicts; ObservableGauge callbacks read them.
+        # Key = app/tool name, Value = OTel attribute dict (labels).
+        self._running_apps: dict[str, dict] = {}
+        self._running_cli: dict[str, dict] = {}
+
         # --- Metric Instruments ---
-        self.app_running = self.meter.create_up_down_counter(name="ai.app.running", unit="1")
-        self.app_active_duration = self.meter.create_counter(name="ai.app.active.duration", unit="s")
-        self.app_cpu_usage = self.meter.create_gauge(name="ai.app.cpu.usage", unit="%")
-        self.app_memory_usage = self.meter.create_gauge(name="ai.app.memory.usage", unit="MB")
-        self.app_estimated_cost = self.meter.create_counter(name="ai.app.estimated.cost", unit="USD")
-        self.browser_domain_active_duration = self.meter.create_counter(name="ai.browser.domain.active.duration", unit="s")
-        self.browser_domain_visit_count = self.meter.create_counter(name="ai.browser.domain.visit.count", unit="1")
-        self.browser_domain_estimated_cost = self.meter.create_counter(name="ai.browser.domain.estimated.cost", unit="USD")
-        self.cli_running = self.meter.create_up_down_counter(name="ai.cli.running", unit="1")
-        self.cli_active_duration = self.meter.create_counter(name="ai.cli.active.duration", unit="s")
-        self.cli_estimated_cost = self.meter.create_counter(name="ai.cli.estimated.cost", unit="USD")
-        self.cli_command_count = self.meter.create_counter(name="ai.cli.command.count", unit="1")
-        self.tokens_input_total = self.meter.create_counter(name="ai.tokens.input_total", unit="1")
-        self.tokens_output_total = self.meter.create_counter(name="ai.tokens.output_total", unit="1")
-        self.tokens_cost_usd_total = self.meter.create_counter(name="ai.tokens.cost_usd_total", unit="1")
-        self.prompt_count_total = self.meter.create_counter(name="ai.prompt.count_total", unit="1")
+        self.app_running = self.meter.create_observable_gauge(
+            name="ai.app.running",
+            unit="1",
+            callbacks=[self._observe_app_running],
+        )
+        self.app_active_duration = self.meter.create_counter(
+            name="ai.app.active.duration", unit="s",
+        )
+        self.app_cpu_usage = self.meter.create_gauge(
+            name="ai.app.cpu.usage", unit="%",
+        )
+        self.app_memory_usage = self.meter.create_gauge(
+            name="ai.app.memory.usage", unit="MB",
+        )
+        self.app_estimated_cost = self.meter.create_counter(
+            name="ai.app.estimated.cost", unit="USD",
+        )
+        self.browser_domain_active_duration = self.meter.create_counter(
+            name="ai.browser.domain.active.duration", unit="s",
+        )
+        self.browser_domain_visit_count = self.meter.create_counter(
+            name="ai.browser.domain.visit.count", unit="1",
+        )
+        self.browser_domain_estimated_cost = self.meter.create_counter(
+            name="ai.browser.domain.estimated.cost", unit="USD",
+        )
+        self.cli_running = self.meter.create_observable_gauge(
+            name="ai.cli.running",
+            unit="1",
+            callbacks=[self._observe_cli_running],
+        )
+        self.cli_active_duration = self.meter.create_counter(
+            name="ai.cli.active.duration", unit="s",
+        )
+        self.cli_estimated_cost = self.meter.create_counter(
+            name="ai.cli.estimated.cost", unit="USD",
+        )
+        self.cli_command_count = self.meter.create_counter(
+            name="ai.cli.command.count", unit="1",
+        )
+        self.tokens_input_total = self.meter.create_counter(
+            name="ai.tokens.input_total", unit="1",
+        )
+        self.tokens_output_total = self.meter.create_counter(
+            name="ai.tokens.output_total", unit="1",
+        )
+        self.tokens_cost_usd_total = self.meter.create_counter(
+            name="ai.tokens.cost_usd_total", unit="1",
+        )
+        self.prompt_count_total = self.meter.create_counter(
+            name="ai.prompt.count_total", unit="1",
+        )
 
         logger.debug("TelemetryManager initialized.")
+
+    def set_running_apps(self, running: dict[str, dict]) -> None:
+        """Update the snapshot of currently running desktop AI apps.
+
+        Called by DesktopDetector after each scan. The dict maps
+        app_name -> attribute labels used in the ObservableGauge callback.
+        """
+        self._running_apps = dict(running)
+
+    def set_running_cli(self, running: dict[str, dict]) -> None:
+        """Update the snapshot of currently running CLI AI tools.
+
+        Called by CLIDetector after each scan.
+        """
+        self._running_cli = dict(running)
+
+    def _observe_app_running(self, options):
+        """ObservableGauge callback: yield one Observation per running app."""
+        for _name, labels in self._running_apps.items():
+            yield Observation(1, labels)
+
+    def _observe_cli_running(self, options):
+        """ObservableGauge callback: yield one Observation per running CLI tool."""
+        for _name, labels in self._running_cli.items():
+            yield Observation(1, labels)
 
     def shutdown(self) -> None:
         """Flush pending metrics and shut down the provider."""
