@@ -1,0 +1,34 @@
+# Local development overrides.
+#
+# The base docker-compose.yml uses Dokploy's ../files/ convention for
+# volume mounts.  This override file remaps them to the local infra/
+# directory so `cd infra && docker compose up -d` works out of the box.
+#
+# Docker Compose automatically merges docker-compose.override.yml when
+# present, so no extra flags are needed.
+
+services:
+  otel-collector:
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+
+  grafana:
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - otel-net
+      # Remove the external dokploy-network for local dev
+
+  prometheus:
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+networks:
+  otel-net:
+    driver: bridge
+  # Override the external dokploy-network so it's not required locally
+  dokploy-network:
+    driver: bridge
