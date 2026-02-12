@@ -95,15 +95,34 @@ class PromptDB:
         self._init_db()
 
     def _init_encryption(self) -> None:
-        """Initialize Fernet encryption with a derived key."""
+        """Initialize Fernet encryption with a derived key.
+
+        Key derivation priority:
+          1. PROMPT_DB_KEY environment variable (most secure — user-controlled secret)
+          2. Machine identity fallback: hostname + username (stable across restarts,
+             but predictable to anyone with local access to the machine)
+
+        The fallback is intentionally weak (defence-in-depth, not a security
+        boundary): it prevents casual snooping of the SQLite file but does NOT
+        protect against a determined attacker with file-system access.  For
+        stronger protection, set PROMPT_DB_KEY to a random secret.
+        """
         try:
             from cryptography.fernet import Fernet
 
-            # Derive key from hostname + username (stable across restarts)
-            identity = f"{socket.gethostname()}:{os.getlogin()}"
-            key = _derive_key(identity)
+            env_key = os.environ.get("PROMPT_DB_KEY")
+            if env_key:
+                key = _derive_key(env_key)
+                logger.debug("Prompt encryption initialized (from PROMPT_DB_KEY env var)")
+            else:
+                # Fallback: derive from machine identity (stable but predictable)
+                identity = f"{socket.gethostname()}:{os.getlogin()}"
+                key = _derive_key(identity)
+                logger.debug(
+                    "Prompt encryption initialized (machine identity fallback). "
+                    "Set PROMPT_DB_KEY env var for stronger protection."
+                )
             self._fernet = Fernet(key)
-            logger.debug("Prompt encryption initialized")
         except ImportError:
             logger.warning(
                 "cryptography package not installed — prompt text will be stored in plaintext. "
@@ -111,7 +130,9 @@ class PromptDB:
             )
             self.encrypt = False
         except Exception:
-            logger.opt(exception=True).warning("Failed to initialize encryption — falling back to plaintext")
+            logger.opt(exception=True).warning(
+                "Failed to initialize encryption — falling back to plaintext"
+            )
             self.encrypt = False
 
     def _init_db(self) -> None:
