@@ -1,0 +1,74 @@
+[     808ms] [WARNING] No analytics consent given @ https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:28
+[   19704ms] [ERROR] Faro
+ @grafana/faro-web-sdk:transport-fetch
+ Failed sending payload to the receiver
+ {meta: Object, measurements: Array(1)} TypeError: Failed to fetch
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34845
+    at n (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2515)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2698
+    at new Promise (<anonymous>)
+    at Object.add (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2638)
+    at ar.<anonymous> (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34665)
+    at Generator.next (<anonymous>)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33603
+    at new Promise (<anonymous>)
+    at Eu (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33400) @ https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:3
+[   19704ms] [ERROR] Faro
+ @grafana/faro-web-sdk:transport-fetch
+ Failed sending payload to the receiver
+ {meta: Object, measurements: Array(2)} TypeError: Failed to fetch
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34845
+    at n (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2515)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2698
+    at new Promise (<anonymous>)
+    at Object.add (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2638)
+    at ar.<anonymous> (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34665)
+    at Generator.next (<anonymous>)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33603
+    at new Promise (<anonymous>)
+    at Eu (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33400) @ https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:3
+[   20194ms] [WARNING] No analytics consent given @ https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:28
+[   21980ms] [ERROR] Faro
+ @grafana/faro-web-sdk:transport-fetch
+ Failed sending payload to the receiver
+ {meta: Object, measurements: Array(1)} TypeError: Failed to fetch
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34845
+    at n (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2515)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2698
+    at new Promise (<anonymous>)
+    at Object.add (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2638)
+    at ar.<anonymous> (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34665)
+    at Generator.next (<anonymous>)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33603
+    at new Promise (<anonymous>)
+    at Eu (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33400) @ https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:3
+[   21980ms] [ERROR] Faro
+ @grafana/faro-web-sdk:transport-fetch
+ Failed sending payload to the receiver
+ {meta: Object, measurements: Array(2)} TypeError: Failed to fetch
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34845
+    at n (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2515)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2698
+    at new Promise (<anonymous>)
+    at Object.add (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2638)
+    at ar.<anonymous> (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34665)
+    at Generator.next (<anonymous>)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33603
+    at new Promise (<anonymous>)
+    at Eu (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33400) @ https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:3
+[   22793ms] [WARNING] No analytics consent given @ https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:28
+[   26982ms] [ERROR] Faro
+ @grafana/faro-web-sdk:transport-fetch
+ Failed sending payload to the receiver
+ {meta: Object, measurements: Array(3)} TypeError: Failed to fetch
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34845
+    at n (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2515)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2698
+    at new Promise (<anonymous>)
+    at Object.add (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:4:2638)
+    at ar.<anonymous> (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:34665)
+    at Generator.next (<anonymous>)
+    at https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33603
+    at new Promise (<anonymous>)
+    at Eu (https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:29:33400) @ https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:3
+[   27803ms] [WARNING] No analytics consent given @ https://grafana.com/web/faro.23b5923f0b18a6c5ada38cb0dea787880956004dd12e4613607fde35992eb82d.js:28

@@ -1,0 +1,9 @@
+[  470101ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://vps.quentinveys.be/api/compose.update:0
+[  741895ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://vps.quentinveys.be/api/compose.one:0
+[  752876ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://vps.quentinveys.be/api/compose.one?input=%7B%22json%22%3A%7B%22composeId%22%3A%22nTmE0zBnlHajlo04MAZd7%22%7D%7D:0
+[  826407ms] [WARNING] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}. @ https://vps.quentinveys.be/_next/static/chunks/pages/_app-fd4304cc8226a772.js:5
+[  982722ms] [WARNING] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}. @ https://vps.quentinveys.be/_next/static/chunks/pages/_app-fd4304cc8226a772.js:5
+[ 1073089ms] [WARNING] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}. @ https://vps.quentinveys.be/_next/static/chunks/pages/_app-fd4304cc8226a772.js:5
+[ 1177076ms] [WARNING] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}. @ https://vps.quentinveys.be/_next/static/chunks/pages/_app-fd4304cc8226a772.js:5
+[ 1441706ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://vps.quentinveys.be/api/compose.one:0
+[ 1609124ms] [WARNING] Select is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component. @ https://vps.quentinveys.be/_next/static/chunks/pages/_app-fd4304cc8226a772.js:1

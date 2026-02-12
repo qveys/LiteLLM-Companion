@@ -1,0 +1,2 @@
+[     859ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://passwords.quentinveys.be/identity/connect/token:0
+[     861ms] [ERROR] Error submitting two factor token @ chrome-extension://nngceckbapebfimnlniiiahkandclblb/popup/main.js:0

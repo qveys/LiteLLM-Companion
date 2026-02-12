@@ -1,0 +1,2 @@
+[     285ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://grafana-otel.quentinveys.be/d/ai-cost-overview:0
+[   20965ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://grafana-otel.quentinveys.be/d/ai-cost-overview/ai-cost-observer-e28094-overview?orgId=1&from=now-24h&to=now&timezone=browser&var-host=$__all&var-interval=1d&refresh=15s:0

@@ -1,0 +1,8 @@
+[[mcp_servers]]
+name="perplexity"
+transport="streamable-http"
+url="https://mcp.quentinveys.be/metamcp/perplexity/mcp"
+
+[tools.perplexity_search_web]
+permission="always"
+

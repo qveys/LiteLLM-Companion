@@ -1,0 +1,42 @@
+[     282ms] [ERROR] Error loading recent dashboard actions TypeError: Failed to execute 'fetch' on 'Window': Request cannot be constructed from a URL that includes credentials: api/search?limit=5&type=dash-db&dashboardUID=ai-cost-overview
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:360:3577
+    at xe.<computed> (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:359:14707)
+    at U._subscribe (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:302:107639)
+    at U._trySubscribe (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:112:7266)
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:112:7189
+    at p (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:114:623)
+    at U.subscribe (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:112:7099)
+    at _ (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:302:114995)
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:302:115370
+    at C.<anonymous> (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:114:1063) @ https://admin:admin@grafana-otel.quentinveys.be/public/build/322.177b4bb01c5d74f9b28f.js:2377
+[     284ms] [ERROR] Error: Unknown Plugin
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/322.177b4bb01c5d74f9b28f.js:981:31829
+    at Ot.invoke (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:359:6921)
+    at xe.run (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:359:1839)
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:360:647
+    at Ot.invokeTask (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:359:7580)
+    at xe.runTask (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:359:2538)
+    at se (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:359:9749) @ https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:358
+[     288ms] TypeError: Failed to execute 'fetch' on 'Window': Request cannot be constructed from a URL that includes credentials: api/user/orgs
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:360:3577
+    at xe.<computed> (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:359:14707)
+    at U._subscribe (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:302:107639)
+    at U._trySubscribe (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:112:7266)
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:112:7189
+    at p (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:114:623)
+    at U.subscribe (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:112:7099)
+    at _ (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:302:114995)
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:302:115370
+    at C.<anonymous> (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:114:1063)
+[     311ms] [ERROR] runRequest.catchError TypeError: Failed to execute 'fetch' on 'Window': Request cannot be constructed from a URL that includes credentials: api/annotations?from=1770857775536&to=1770879375537&limit=100&matchAny=false&dashboardUID=ai-cost-overview
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:360:3577
+    at xe.<computed> (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:359:14707)
+    at U._subscribe (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:302:107639)
+    at U._trySubscribe (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:112:7266)
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:112:7189
+    at p (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:114:623)
+    at U.subscribe (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:112:7099)
+    at _ (https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:302:114995)
+    at https://admin:admin@grafana-otel.quentinveys.be/public/build/1518.a3f1f690c084a37f01c7.js:302:115370
+    at C.<anonymous> (https://admin:admin@grafana-otel.quentinveys.be/public/build/4239.c2eca2b0222ddf40980b.js:114:1063) @ https://admin:admin@grafana-otel.quentinveys.be/public/build/322.177b4bb01c5d74f9b28f.js:1065
+[     348ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://admin:admin@grafana-otel.quentinveys.be/d/ai-cost-overview/ai-cost-observer-e28094-overview?orgId=1&from=now-6h&to=now&timezone=browser:0
