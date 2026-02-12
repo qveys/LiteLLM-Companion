@@ -8,7 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-Stories 0-10 are **Done**. See `docs/stories.md` for details. 281 tests passing.
+V0 release (tag v0.1.0). 336 tests passing. 19/21 bugs fixed. CI/CD active.
+See `docs/consolidation-report.md` for full status and `docs/roadmap-v1.md` for next steps.
+
+**Open issues:** #44 (WSL ObservableGauge compat), #45 (HTTP tokens fallback cost).
 
 ## Build & Run Commands
 
@@ -24,7 +27,7 @@ python -m ai_cost_observer
 # Install dev deps
 uv sync --extra dev
 
-# Tests (281 tests)
+# Tests (336 tests)
 uv run python -m pytest
 uv run python -m pytest tests/test_desktop.py           # single test file
 uv run python -m pytest tests/test_desktop.py::test_fn  # single test function
@@ -66,7 +69,7 @@ Workstation (Python agent)          VPS (vps.quentinveys.be / Dokploy)
 
 All metrics use `ai.` namespace. Prometheus names are auto-converted: `ai.app.running` → `ai_app_running` (no `ai_cost_observer_` prefix; scope name goes to `otel_scope_name` label).
 
-16 metrics across 4 categories: `ai.app.*` (desktop), `ai.browser.domain.*` (browser), `ai.cli.*` (CLI), `ai.tokens.*` / `ai.prompt.*` (token tracking). Cost metrics use `unit="1"` to avoid double `_USD_total` suffix. See `docs/architecture.md` for the full metric table.
+16 metrics across 4 categories: `ai.app.*` (desktop), `ai.browser.domain.*` (browser), `ai.cli.*` (CLI), `ai.tokens.*` / `ai.prompt.*` (token tracking). Cost metrics use `unit="1"` to avoid double `_USD_total` suffix. Token/prompt counters use names without `_total` suffix (e.g., `ai.tokens.input` not `ai.tokens.input_total`) — Prometheus adds `_total` automatically. `ai.app.running` and `ai.cli.running` are ObservableGauge (not UpDownCounter). `ai.app.cpu.usage` and `ai.app.memory.usage` are Gauge (not Histogram). See `docs/architecture.md` for the full metric table.
 
 Resource attributes on all metrics: `service.name=ai-cost-observer`, `host.name`, `os.type`, `service.version`, `deployment.environment=personal`.
 

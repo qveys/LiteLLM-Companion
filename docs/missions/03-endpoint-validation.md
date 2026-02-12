@@ -118,16 +118,19 @@ Pour CHAQUE endpoint, l'agent dedie doit:
 
 > Seul le contenu ci-dessous sera lu par le consolidateur.
 
-### Statut: [REUSSI | ECHOUE | PARTIEL]
+### Statut: REUSSI
 
 ### Resultats cles:
-- Endpoints VALIDES: /9 (liste)
-- Endpoints INVALIDES: /9 (liste + issues)
-- Tests executes: XX passent
-- Gaps identifies: XX
+- Endpoints VALIDES: 7/9 (Desktop, CLI, Browser History, Shell History, Token Claude, Token Codex, HTTP Browser)
+- Endpoints INVALIDES: 2/9 (HTTP Tokens #45, WSL #44)
+- Tests executes: 314/314 passent
+- Gaps identifies: 2 bugs masques par les mocks
+- PR: https://github.com/qveys/LiteLLM-Companion/pull/46
 
 ### Problemes non resolus:
-- ...
+- #44: WSL detector appelle `.add()` sur ObservableGauge (API incompatible apres fix H1)
+- #45: HTTP /api/tokens fallback ne record pas `tokens_cost_usd_total` quand token_tracker est None
 
 ### Recommandations:
-- ...
+- Les 2 bugs invalides sont masques par les mocks dans les tests — un test d'integration avec le vrai TelemetryManager les aurait detectes
+- Ajouter des tests d'integration pour les endpoints critiques

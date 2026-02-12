@@ -107,17 +107,32 @@ Assigner des fichiers DIFFERENTS a chaque agent pour eviter les conflits.
 
 > Seul le contenu ci-dessous sera lu par le consolidateur.
 
-### Statut: [REUSSI | ECHOUE | PARTIEL]
+### Statut: REUSSI
 
 ### Resultats cles:
-- Bugs corriges: /10
-- Nouveaux tests: XX
-- Tests totaux: XX/XX passent
-- Issues fermees: /10
-- PR: [lien]
+- Bugs corriges: 10/10 (3 critical + 7 high)
+- Nouveaux tests: 33
+- Tests totaux: 314/314 passent
+- Issues fermees: 0/10 (a fermer au merge)
+- PR: https://github.com/qveys/LiteLLM-Companion/pull/43
+
+### Detail des fixes:
+- C1: Codex rowid tracking (`token_tracker.py`) — commit `d05703f`
+- C2: File offsets persistes sur disque (`token_tracker.py`) — commit `3e13fe3`
+- C3: Histogram → Gauge pour CPU/Memory (`telemetry.py`, `desktop.py`) — commit `96e5fd0`
+- H1: UpDownCounter → ObservableGauge (`telemetry.py`, `desktop.py`, `cli.py`) — commit `7b76c88`
+- H2: `_free_port()` supprime, SO_REUSEADDR suffit (`main.py`) — commit dans `96e5fd0`
+- H3: metric_expiration 5m → 90m (`otel-collector-config.yaml`) — commit `b0cc62f`
+- H4: Cache tokens integres dans le cout (`token_tracker.py`) — commit `fa514b8`
+- H5: pendingTokenEvents persistes dans chrome.storage.local (`background.js`) — commit `43596b4`
+- H6: urlparse + suffix matching (`browser_history.py`) — commit `fadea50`
+- H7: Pattern "cc" supprime (`ai_config.yaml`) — commit `1038613`
 
 ### Problemes non resolus:
-- ...
+- 8 warnings E501 (line too long) pre-existants dans du code non modifie
+- Les issues GitHub n'ont pas encore ete fermees (a faire au merge)
 
 ### Recommandations:
-- ...
+- Merger la PR #43 pour debloquer Phases 2 et 3
+- Fermer les issues #1-#14 avec reference aux commits
+- Verifier manuellement les dashboards Grafana apres merge (panels CPU/Memory)

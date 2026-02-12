@@ -177,17 +177,20 @@ comme reference, puis adapter/completer avec les labels specifiques ci-dessous.
 
 > Seul le contenu ci-dessous sera lu par le consolidateur.
 
-### Statut: [REUSSI | ECHOUE | PARTIEL]
+### Statut: REUSSI
 
 ### Resultats cles:
-- Nombre de commits: /14
-- Nombre d'issues: /21
-- Nombre de labels: /XX
-- Tag v0.1.0: OUI/NON
-- Tests: XX/281 passent
+- Nombre de commits: 14/14
+- Nombre d'issues: 21/21
+- Nombre de labels: 54
+- Tag v0.1.0: OUI
+- Tests: 284/281 passent (3 tests supplementaires detectes)
+- Git status: clean (aucun fichier untracked)
+- Push: origin/main a jour
 
 ### Problemes non resolus:
-- ...
+- Aucun
 
 ### Recommandations:
-- ...
+- Le nombre de tests (284) est legerement superieur aux 281 documentes — mettre a jour docs/stories.md
+- Certaines issues ont des numeros non sequentiels (#1-#37) en raison de doublons crees puis fermes pendant l'execution
