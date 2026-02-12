@@ -99,6 +99,7 @@ class TokenTracker:
 
         # Track file positions for incremental reading
         self._file_offsets: dict[str, int] = {}
+        self._codex_last_rowid: int = 0
         self._last_scan_time: float = 0.0
 
         # State file for persisting offsets across restarts
@@ -114,6 +115,7 @@ class TokenTracker:
             try:
                 data = json.loads(self._state_file.read_text(encoding="utf-8"))
                 self._file_offsets = {k: int(v) for k, v in data.get("file_offsets", {}).items()}
+                self._codex_last_rowid = int(data.get("codex_last_rowid", 0))
             except Exception:
                 logger.opt(exception=True).debug("Failed to load token tracker state")
 
@@ -123,6 +125,7 @@ class TokenTracker:
             self._state_file.parent.mkdir(parents=True, exist_ok=True)
             data = {
                 "file_offsets": self._file_offsets,
+                "codex_last_rowid": self._codex_last_rowid,
             }
             self._state_file.write_text(json.dumps(data), encoding="utf-8")
         except Exception:
@@ -286,12 +289,14 @@ class TokenTracker:
             if "input_tokens" not in columns:
                 return
 
-            # Read new sessions since last scan
+            # Read only new sessions since last processed rowid
             cursor = conn.execute(
-                "SELECT * FROM sessions WHERE input_tokens > 0 ORDER BY rowid"
+                "SELECT rowid, * FROM sessions WHERE input_tokens > 0 AND rowid > ? ORDER BY rowid",
+                (self._codex_last_rowid,),
             )
 
             for row in cursor:
+                self._codex_last_rowid = row["rowid"]
                 input_tokens = row["input_tokens"] or 0
                 output_tokens = row["output_tokens"] if "output_tokens" in columns else 0
                 model = row["model"] if "model" in columns else "unknown"

@@ -1,6 +1,7 @@
 """Tests for the token tracker module."""
 
 import json
+import sqlite3
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -428,3 +429,161 @@ class TestTokenTrackerApiIntercept:
             500, {"tool.name": "claude-web", "model.name": "claude-sonnet-4-5"}
         )
         telemetry.prompt_count_total.add.assert_called_once()
+
+
+def _create_codex_db(db_path, rows):
+    """Helper: create a Codex-style SQLite database with sessions table."""
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "CREATE TABLE sessions ("
+        "  id TEXT PRIMARY KEY,"
+        "  model TEXT,"
+        "  input_tokens INTEGER,"
+        "  output_tokens INTEGER"
+        ")"
+    )
+    for row in rows:
+        conn.execute(
+            "INSERT INTO sessions (id, model, input_tokens, output_tokens) VALUES (?, ?, ?, ?)",
+            row,
+        )
+    conn.commit()
+    conn.close()
+
+
+class TestCodexScannerIncremental:
+    def test_codex_does_not_reprocess_rows(self, tmp_path):
+        """Codex scanner should not re-process rows on the second scan cycle."""
+        codex_db = tmp_path / ".codex" / "sqlite" / "codex-dev.db"
+        state_dir = tmp_path / "state"
+        state_dir.mkdir(parents=True)
+
+        _create_codex_db(codex_db, [
+            ("sess-1", "o3-mini", 500, 200),
+        ])
+
+        config = AppConfig()
+        config.token_tracking = {}
+        config.state_dir = state_dir
+        telemetry = MagicMock()
+        telemetry.tokens_input_total = MagicMock()
+        telemetry.tokens_output_total = MagicMock()
+        telemetry.tokens_cost_usd_total = MagicMock()
+        telemetry.prompt_count_total = MagicMock()
+
+        tracker = TokenTracker(config, telemetry)
+
+        import unittest.mock
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker.scan()
+
+        assert telemetry.tokens_input_total.add.call_count == 1
+
+        # Second scan with no new data: should NOT re-count
+        telemetry.reset_mock()
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker.scan()
+
+        telemetry.tokens_input_total.add.assert_not_called()
+
+    def test_codex_processes_only_new_rows(self, tmp_path):
+        """After initial scan, only newly inserted rows are processed."""
+        codex_db = tmp_path / ".codex" / "sqlite" / "codex-dev.db"
+        state_dir = tmp_path / "state"
+        state_dir.mkdir(parents=True)
+
+        _create_codex_db(codex_db, [
+            ("sess-1", "o3-mini", 500, 200),
+        ])
+
+        config = AppConfig()
+        config.token_tracking = {}
+        config.state_dir = state_dir
+        telemetry = MagicMock()
+        telemetry.tokens_input_total = MagicMock()
+        telemetry.tokens_output_total = MagicMock()
+        telemetry.tokens_cost_usd_total = MagicMock()
+        telemetry.prompt_count_total = MagicMock()
+
+        tracker = TokenTracker(config, telemetry)
+
+        import unittest.mock
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker.scan()
+
+        assert telemetry.tokens_input_total.add.call_count == 1
+
+        # Insert new row
+        conn = sqlite3.connect(str(codex_db))
+        conn.execute(
+            "INSERT INTO sessions (id, model, input_tokens, output_tokens) VALUES (?, ?, ?, ?)",
+            ("sess-2", "gpt-4o", 300, 150),
+        )
+        conn.commit()
+        conn.close()
+
+        telemetry.reset_mock()
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker.scan()
+
+        # Only the new row should be processed
+        assert telemetry.tokens_input_total.add.call_count == 1
+        telemetry.tokens_input_total.add.assert_called_once_with(
+            300, {"tool.name": "codex-cli", "model.name": "gpt-4o"}
+        )
+
+    def test_codex_rowid_persists_across_restarts(self, tmp_path):
+        """Codex last_rowid survives restarts via state file."""
+        codex_db = tmp_path / ".codex" / "sqlite" / "codex-dev.db"
+        state_dir = tmp_path / "state"
+        state_dir.mkdir(parents=True)
+
+        _create_codex_db(codex_db, [
+            ("sess-1", "o3-mini", 500, 200),
+        ])
+
+        config = AppConfig()
+        config.token_tracking = {}
+        config.state_dir = state_dir
+        telemetry = MagicMock()
+        telemetry.tokens_input_total = MagicMock()
+        telemetry.tokens_output_total = MagicMock()
+        telemetry.tokens_cost_usd_total = MagicMock()
+        telemetry.prompt_count_total = MagicMock()
+
+        import unittest.mock
+
+        # First tracker instance
+        tracker1 = TokenTracker(config, telemetry)
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker1.scan()
+
+        assert telemetry.tokens_input_total.add.call_count == 1
+
+        # Simulate restart: new tracker instance
+        telemetry.reset_mock()
+        tracker2 = TokenTracker(config, telemetry)
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker2.scan()
+
+        # Should NOT re-process
+        telemetry.tokens_input_total.add.assert_not_called()
