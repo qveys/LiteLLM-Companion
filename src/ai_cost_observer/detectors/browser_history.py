@@ -164,7 +164,9 @@ class BrowserHistoryParser:
                         "url": row["url"],
                         "title": row["title"] if "title" in row.keys() else "",
                         "visit_time": row["visit_time"],
-                        "visit_duration": row["visit_duration"] if "visit_duration" in row.keys() else 0,
+                        "visit_duration": (
+                            row["visit_duration"] if "visit_duration" in row.keys() else 0
+                        ),
                         "browser": browser,
                     }
                     for row in rows
@@ -254,7 +256,12 @@ class BrowserHistoryParser:
             )
 
     def _estimate_session_duration(self, visits: list[dict], browser: str) -> float:
-        """Estimate total session duration from visit timestamps."""
+        """Estimate total session duration from visit timestamps.
+
+        For multi-visit sessions, adds a 5-minute buffer after the last visit
+        to account for reading/interaction time. Single-visit sessions get a
+        flat 60-second estimate instead of the full 300-second buffer.
+        """
         if not visits:
             return 0.0
 
@@ -277,18 +284,30 @@ class BrowserHistoryParser:
         # Split into sessions (gap > 30 min = new session)
         total = 0.0
         session_start = timestamps[0]
+        session_visit_count = 1
         prev = timestamps[0]
 
         for ts in timestamps[1:]:
             gap = ts - prev
             if gap > _SESSION_GAP_SECONDS:
-                # Close previous session: assume 5 min of activity after last visit
-                total += (prev - session_start) + 300
+                # Close previous session
+                session_span = prev - session_start
+                if session_visit_count > 1:
+                    total += session_span + 300  # multi-visit: 5 min buffer
+                else:
+                    total += 60  # single-visit: flat 60s estimate
                 session_start = ts
+                session_visit_count = 1
+            else:
+                session_visit_count += 1
             prev = ts
 
         # Final session
-        total += (prev - session_start) + 300  # 5 min after last visit
+        session_span = prev - session_start
+        if session_visit_count > 1:
+            total += session_span + 300  # multi-visit: 5 min buffer
+        else:
+            total += 60  # single-visit: flat 60s estimate
         return max(total, 0)
 
     @staticmethod
