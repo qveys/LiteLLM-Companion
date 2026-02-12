@@ -45,8 +45,19 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
 }
 
 
-def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
-    """Estimate cost in USD from model name and token counts."""
+def estimate_cost(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cache_creation_input_tokens: int = 0,
+    cache_read_input_tokens: int = 0,
+) -> float:
+    """Estimate cost in USD from model name and token counts.
+
+    Cache token pricing follows Anthropic conventions:
+    - cache_creation_input_tokens: 1.25x the input price
+    - cache_read_input_tokens: 0.1x the input price
+    """
     # Try exact match first, then prefix match
     pricing = MODEL_PRICING.get(model)
     if not pricing:
@@ -58,9 +69,14 @@ def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
         # Default fallback: mid-range pricing
         pricing = (3.0, 15.0)
 
-    input_cost = (input_tokens / 1_000_000) * pricing[0]
-    output_cost = (output_tokens / 1_000_000) * pricing[1]
-    return input_cost + output_cost
+    input_price = pricing[0]
+    output_price = pricing[1]
+
+    input_cost = (input_tokens / 1_000_000) * input_price
+    output_cost = (output_tokens / 1_000_000) * output_price
+    cache_creation_cost = (cache_creation_input_tokens / 1_000_000) * input_price * 1.25
+    cache_read_cost = (cache_read_input_tokens / 1_000_000) * input_price * 0.1
+    return input_cost + output_cost + cache_creation_cost + cache_read_cost
 
 
 class TokenTracker:
@@ -167,7 +183,11 @@ class TokenTracker:
             return
 
         model = entry.get("model", "") or entry.get("message", {}).get("model", "") or "unknown"
-        cost = estimate_cost(model, input_tokens, output_tokens)
+        cost = estimate_cost(
+            model, input_tokens, output_tokens,
+            cache_creation_input_tokens=cache_creation,
+            cache_read_input_tokens=cache_read,
+        )
 
         labels = {"tool.name": "claude-code", "model.name": model}
 

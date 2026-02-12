@@ -32,6 +32,143 @@ class TestEstimateCost:
         expected = (1000 / 1_000_000) * 0.15 + (500 / 1_000_000) * 0.60
         assert abs(cost - expected) < 1e-10
 
+    def test_cache_creation_tokens_add_125x_input_cost(self):
+        """Cache creation tokens cost 1.25x the input price."""
+        # claude-sonnet-4-5: $3/M input, $15/M output
+        cost = estimate_cost(
+            "claude-sonnet-4-5",
+            input_tokens=1_000_000,
+            output_tokens=0,
+            cache_creation_input_tokens=1_000_000,
+        )
+        # input cost = $3.0 + cache creation = $3.0 * 1.25 = $3.75
+        expected = 3.0 + 3.0 * 1.25
+        assert abs(cost - expected) < 1e-10
+
+    def test_cache_read_tokens_add_01x_input_cost(self):
+        """Cache read tokens cost 0.1x the input price."""
+        # claude-sonnet-4-5: $3/M input, $15/M output
+        cost = estimate_cost(
+            "claude-sonnet-4-5",
+            input_tokens=0,
+            output_tokens=0,
+            cache_read_input_tokens=1_000_000,
+        )
+        # cache read = $3.0 * 0.1 = $0.30
+        expected = 3.0 * 0.1
+        assert abs(cost - expected) < 1e-10
+
+    def test_cache_tokens_default_to_zero(self):
+        """When cache tokens not provided, cost is unchanged."""
+        cost_without = estimate_cost("claude-sonnet-4-5", 1_000_000, 1_000_000)
+        cost_with_zero = estimate_cost(
+            "claude-sonnet-4-5", 1_000_000, 1_000_000,
+            cache_creation_input_tokens=0, cache_read_input_tokens=0,
+        )
+        assert cost_without == cost_with_zero
+
+    def test_cost_with_all_token_types(self):
+        """Full cost calculation with input, output, cache creation, and cache read."""
+        # claude-sonnet-4-5: $3/M input, $15/M output
+        cost = estimate_cost(
+            "claude-sonnet-4-5",
+            input_tokens=500_000,
+            output_tokens=200_000,
+            cache_creation_input_tokens=100_000,
+            cache_read_input_tokens=300_000,
+        )
+        input_price = 3.0
+        output_price = 15.0
+        expected = (
+            (500_000 / 1_000_000) * input_price
+            + (200_000 / 1_000_000) * output_price
+            + (100_000 / 1_000_000) * input_price * 1.25
+            + (300_000 / 1_000_000) * input_price * 0.1
+        )
+        assert abs(cost - expected) < 1e-10
+
+
+class TestTokenTrackerCacheCostInScan:
+    def test_scan_emits_cost_including_cache_tokens(self, tmp_path):
+        """When JSONL has cache tokens, cost metric includes their cost."""
+        project_dir = tmp_path / ".claude" / "projects" / "test-project"
+        project_dir.mkdir(parents=True)
+
+        entry = {
+            "role": "assistant",
+            "model": "claude-sonnet-4-5",
+            "usage": {
+                "input_tokens": 1_000_000,
+                "output_tokens": 0,
+                "cache_creation_input_tokens": 1_000_000,
+                "cache_read_input_tokens": 1_000_000,
+            },
+        }
+        jsonl_file = project_dir / "session-cache.jsonl"
+        jsonl_file.write_text(json.dumps(entry) + "\n")
+
+        config = AppConfig()
+        config.token_tracking = {}
+        telemetry = MagicMock()
+        telemetry.tokens_input_total = MagicMock()
+        telemetry.tokens_output_total = MagicMock()
+        telemetry.tokens_cost_usd_total = MagicMock()
+        telemetry.prompt_count_total = MagicMock()
+
+        tracker = TokenTracker(config, telemetry)
+
+        import unittest.mock
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker.scan()
+
+        # Cost should include cache tokens
+        # input: $3.0, cache_creation: $3.0 * 1.25 = $3.75, cache_read: $3.0 * 0.1 = $0.30
+        expected_cost = 3.0 + 3.0 * 1.25 + 3.0 * 0.1
+        actual_cost = telemetry.tokens_cost_usd_total.add.call_args[0][0]
+        assert abs(actual_cost - expected_cost) < 1e-10
+
+    def test_scan_handles_missing_cache_fields(self, tmp_path):
+        """When JSONL entry has no cache fields, cost is computed without them."""
+        project_dir = tmp_path / ".claude" / "projects" / "test-project"
+        project_dir.mkdir(parents=True)
+
+        entry = {
+            "role": "assistant",
+            "model": "claude-sonnet-4-5",
+            "usage": {
+                "input_tokens": 1_000_000,
+                "output_tokens": 1_000_000,
+                # No cache fields at all
+            },
+        }
+        jsonl_file = project_dir / "session-nocache.jsonl"
+        jsonl_file.write_text(json.dumps(entry) + "\n")
+
+        config = AppConfig()
+        config.token_tracking = {}
+        telemetry = MagicMock()
+        telemetry.tokens_input_total = MagicMock()
+        telemetry.tokens_output_total = MagicMock()
+        telemetry.tokens_cost_usd_total = MagicMock()
+        telemetry.prompt_count_total = MagicMock()
+
+        tracker = TokenTracker(config, telemetry)
+
+        import unittest.mock
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home",
+            return_value=tmp_path,
+        ):
+            tracker.scan()
+
+        # Cost should just be input + output: $3.0 + $15.0 = $18.0
+        expected_cost = 3.0 + 15.0
+        actual_cost = telemetry.tokens_cost_usd_total.add.call_args[0][0]
+        assert abs(actual_cost - expected_cost) < 1e-10
+
 
 class TestTokenTrackerClaudeCode:
     def test_scan_claude_jsonl(self, tmp_path):
