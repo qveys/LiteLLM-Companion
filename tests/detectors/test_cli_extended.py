@@ -20,6 +20,7 @@ def _make_config(cli_tools):
 def _make_telemetry():
     tm = MagicMock()
     tm.cli_running = MagicMock()
+    tm.set_running_cli = MagicMock()
     tm.cli_active_duration = MagicMock()
     tm.cli_estimated_cost = MagicMock()
     return tm
@@ -35,7 +36,7 @@ class TestCLIMultipleInstances:
     """Test CLI detector with multiple instances of the same tool."""
 
     def test_multiple_pids_count_as_one_running(self, mocker):
-        """Multiple PIDs of the same CLI tool only emit one +1 running event."""
+        """Multiple PIDs of the same CLI tool appear once in the snapshot."""
         tools = [
             {
                 "name": "Ollama",
@@ -58,10 +59,10 @@ class TestCLIMultipleInstances:
 
         detector.scan()
 
-        # Should only call add(1, ...) once, not three times
-        telemetry.cli_running.add.assert_called_once_with(
-            1, {"cli.name": "Ollama", "cli.category": "inference"}
-        )
+        # Bug H1: snapshot should contain Ollama exactly once
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "Ollama" in snapshot
+        assert len(snapshot) == 1
 
     def test_multiple_different_tools(self, mocker):
         """Multiple different CLI tools are all detected."""
@@ -91,7 +92,11 @@ class TestCLIMultipleInstances:
 
         detector.scan()
 
-        assert telemetry.cli_running.add.call_count == 2
+        # Bug H1: snapshot should contain both tools
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert len(snapshot) == 2
+        assert "Ollama" in snapshot
+        assert "claude-code" in snapshot
 
 
 class TestCLIAccessDenied:
@@ -120,10 +125,9 @@ class TestCLIAccessDenied:
 
         detector.scan()  # Should not raise
 
-        # The good process should still be detected
-        telemetry.cli_running.add.assert_called_once_with(
-            1, {"cli.name": "Ollama", "cli.category": "inference"}
-        )
+        # The good process should still be detected (Bug H1: check snapshot)
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert "Ollama" in snapshot
 
     def test_no_such_process_graceful(self, mocker):
         """psutil.NoSuchProcess during iteration is handled gracefully."""
@@ -148,4 +152,62 @@ class TestCLIAccessDenied:
 
         detector.scan()  # Should not raise
 
+        # Bug H1: snapshot should be empty (no valid processes)
+        snapshot = telemetry.set_running_cli.call_args[0][0]
+        assert len(snapshot) == 0
+
+
+class TestCLIObservableGauge:
+    """Bug H1: cli_running must use ObservableGauge to avoid drift on crash."""
+
+    def test_running_tools_tracked_as_set(self, mocker):
+        """CLIDetector tracks running tools as a set for ObservableGauge callback."""
+        tools = [
+            {
+                "name": "Ollama",
+                "process_names": {"macos": ["ollama"], "windows": ["ollama.exe"]},
+                "category": "inference",
+                "cost_per_hour": 0.50,
+            }
+        ]
+        config = _make_config(tools)
+        telemetry = _make_telemetry()
+        detector = CLIDetector(config, telemetry)
+
+        procs = [_fake_process(100, "ollama")]
+        mocker.patch("psutil.process_iter", return_value=procs)
+
+        detector.scan()
+
+        # Detector must expose current running tools
+        running = detector.running_tools
+        assert "Ollama" in running
+
+        # Tool stops
+        mocker.patch("psutil.process_iter", return_value=[])
+        detector.scan()
+
+        running = detector.running_tools
+        assert "Ollama" not in running
+
+    def test_running_tools_no_add_calls(self, mocker):
+        """CLIDetector must NOT call cli_running.add() anymore."""
+        tools = [
+            {
+                "name": "Ollama",
+                "process_names": {"macos": ["ollama"], "windows": ["ollama.exe"]},
+                "category": "inference",
+                "cost_per_hour": 0.50,
+            }
+        ]
+        config = _make_config(tools)
+        telemetry = _make_telemetry()
+        detector = CLIDetector(config, telemetry)
+
+        procs = [_fake_process(100, "ollama")]
+        mocker.patch("psutil.process_iter", return_value=procs)
+
+        detector.scan()
+
+        # With ObservableGauge, detector should NOT call .add() on cli_running
         telemetry.cli_running.add.assert_not_called()

@@ -34,6 +34,8 @@ class DesktopDetector:
         self.telemetry = telemetry
         self._state: dict[str, _AppState] = {}
         self._claimed_pids: set[int] = set()  # PIDs claimed in the last scan
+        # Bug H1: track currently running apps for ObservableGauge callback
+        self._running_apps: dict[str, dict] = {}  # app_name -> labels
 
         # Build process name → app config lookup
         self._process_map: dict[str, dict] = {}
@@ -124,13 +126,20 @@ class DesktopDetector:
 
             labels = {"app.name": app_name, "app.category": app_cfg.get("category", "unknown")}
 
-            # Running state transitions
+            # Running state transitions (log only; metric via ObservableGauge)
             if is_running and not state.was_running:
-                self.telemetry.app_running.add(1, labels)
-                logger.info("Detected AI app: {} (PIDs: {})", app_name, found.get(app_name, set()))
+                logger.info(
+                    "Detected AI app: {} (PIDs: {})",
+                    app_name, found.get(app_name, set()),
+                )
             elif not is_running and state.was_running:
-                self.telemetry.app_running.add(-1, labels)
                 logger.info("AI app stopped: {}", app_name)
+
+            # Update running apps snapshot for ObservableGauge callback
+            if is_running:
+                self._running_apps[app_name] = labels
+            else:
+                self._running_apps.pop(app_name, None)
 
             # Foreground time tracking
             is_foreground = False
@@ -150,16 +159,24 @@ class DesktopDetector:
                     cost = cost_per_hour * (elapsed / 3600)
                     self.telemetry.app_estimated_cost.add(cost, labels)
 
-            # Resource usage histograms
+            # Resource usage gauges
             if app_name in cpu_by_app:
-                self.telemetry.app_cpu_usage.record(cpu_by_app[app_name], labels)
+                self.telemetry.app_cpu_usage.set(cpu_by_app[app_name], labels)
             if app_name in mem_by_app:
-                self.telemetry.app_memory_usage.record(mem_by_app[app_name], labels)
+                self.telemetry.app_memory_usage.set(mem_by_app[app_name], labels)
 
             state.pids = found.get(app_name, set())
             state.was_running = is_running
             state.was_foreground = is_foreground
             state.last_scan_time = now
+
+        # Push snapshot to TelemetryManager for ObservableGauge callback
+        self.telemetry.set_running_apps(self._running_apps)
+
+    @property
+    def running_apps(self) -> dict[str, dict]:
+        """Return currently running apps (name -> labels) for ObservableGauge."""
+        return dict(self._running_apps)
 
     @property
     def claimed_pids(self) -> set[int]:

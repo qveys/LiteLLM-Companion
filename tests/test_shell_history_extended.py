@@ -20,7 +20,7 @@ def shell_config(tmp_path: Path) -> AppConfig:
     config.ai_cli_tools = [
         {
             "name": "Claude-CLI",
-            "command_patterns": ["claude-code", "cc"],
+            "command_patterns": ["claude-code", "claude"],
         },
         {
             "name": "Ollama",
@@ -125,7 +125,7 @@ class TestMalformedZshHistory:
             ": 1629410103:0;ollama run ok\n"
             ": invalid_timestamp\n"  # missing semicolon
             "bare command ollama pull\n"  # not extended format, treated as plain
-            ": 1629410105:0;cc -m 'fix'\n"
+            ": 1629410105:0;claude -m 'fix'\n"
             "",
             encoding="utf-8",
         )
@@ -149,7 +149,7 @@ class TestMalformedZshHistory:
         history_file.write_text(
             ": 1629410103:0;echo hello\n"
             "ollama run test\n"  # bare line (continuation or fallback)
-            ": 1629410104:0;cc prompt\n",
+            ": 1629410104:0;claude prompt\n",
             encoding="utf-8",
         )
 

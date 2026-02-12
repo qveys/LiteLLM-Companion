@@ -35,11 +35,11 @@ def caplog_loguru(caplog):
 def mock_telemetry():
     """Full mock of TelemetryManager with all metric instruments."""
     telemetry = Mock()
-    # UpDownCounters
+    # ObservableGauges (Bug H1: was UpDownCounter)
     telemetry.app_running = Mock()
-    telemetry.app_running.add = Mock()
     telemetry.cli_running = Mock()
-    telemetry.cli_running.add = Mock()
+    telemetry.set_running_apps = Mock()
+    telemetry.set_running_cli = Mock()
     # Counters
     telemetry.app_active_duration = Mock()
     telemetry.app_active_duration.add = Mock()
@@ -65,11 +65,11 @@ def mock_telemetry():
     telemetry.tokens_cost_usd_total.add = Mock()
     telemetry.prompt_count_total = Mock()
     telemetry.prompt_count_total.add = Mock()
-    # Histograms
+    # Gauges (Bug C3: was Histogram)
     telemetry.app_cpu_usage = Mock()
-    telemetry.app_cpu_usage.record = Mock()
+    telemetry.app_cpu_usage.set = Mock()
     telemetry.app_memory_usage = Mock()
-    telemetry.app_memory_usage.record = Mock()
+    telemetry.app_memory_usage.set = Mock()
     return telemetry
 
 

@@ -30,8 +30,9 @@ def mock_cli_config(tmp_path: Path) -> AppConfig:
 def mock_telemetry() -> Mock:
     """Provides a mock TelemetryManager."""
     telemetry = Mock()
+    # ObservableGauge (Bug H1: was UpDownCounter)
     telemetry.cli_running = Mock()
-    telemetry.cli_running.add = Mock()
+    telemetry.set_running_cli = Mock()
     telemetry.cli_active_duration = Mock()
     telemetry.cli_active_duration.add = Mock()
     telemetry.cli_estimated_cost = Mock()
@@ -47,30 +48,38 @@ def create_mock_process(name: str, pid: int):
     return proc
 
 def test_cli_detector_state_changes(mock_cli_config: AppConfig, mock_telemetry: Mock, mocker):
-    """Test the stateful tracking of CLI tool start and stop."""
+    """Test the stateful tracking of CLI tool start and stop.
+
+    Bug H1: Uses ObservableGauge via set_running_cli() instead of
+    UpDownCounter .add(1)/.add(-1).
+    """
     detector = CLIDetector(mock_cli_config, mock_telemetry)
 
     # --- Scan 1: A new AI CLI process appears ---
     mock_process_list = [create_mock_process("ollama", 456)]
     mocker.patch("psutil.process_iter", return_value=mock_process_list)
-    
+
     detector.scan()
-    
-    # Assert that the 'cli_running' counter was incremented by 1
-    mock_telemetry.cli_running.add.assert_called_once_with(1, {"cli.name": "Ollama", "cli.category": "unknown"})
+
+    # Verify running tools snapshot is pushed to telemetry
+    mock_telemetry.set_running_cli.assert_called()
+    snapshot = mock_telemetry.set_running_cli.call_args[0][0]
+    assert "Ollama" in snapshot
 
     # --- Scan 2: The process is still running ---
-    mock_telemetry.cli_running.add.reset_mock()
-    
+    mock_telemetry.set_running_cli.reset_mock()
+
     detector.scan()
 
-    # Assert that the counter was NOT called again
-    mock_telemetry.cli_running.add.assert_not_called()
+    # Snapshot still contains the tool
+    snapshot = mock_telemetry.set_running_cli.call_args[0][0]
+    assert "Ollama" in snapshot
 
     # --- Scan 3: The process disappears ---
     mocker.patch("psutil.process_iter", return_value=[])
-    
+
     detector.scan()
 
-    # Assert that the 'cli_running' counter was decremented by 1
-    mock_telemetry.cli_running.add.assert_called_once_with(-1, {"cli.name": "Ollama", "cli.category": "unknown"})
+    # Snapshot should be empty (tool stopped)
+    snapshot = mock_telemetry.set_running_cli.call_args[0][0]
+    assert "Ollama" not in snapshot

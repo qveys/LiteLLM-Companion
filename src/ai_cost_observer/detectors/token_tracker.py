@@ -45,8 +45,19 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
 }
 
 
-def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
-    """Estimate cost in USD from model name and token counts."""
+def estimate_cost(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cache_creation_input_tokens: int = 0,
+    cache_read_input_tokens: int = 0,
+) -> float:
+    """Estimate cost in USD from model name and token counts.
+
+    Cache token pricing follows Anthropic conventions:
+    - cache_creation_input_tokens: 1.25x the input price
+    - cache_read_input_tokens: 0.1x the input price
+    """
     # Try exact match first, then prefix match
     pricing = MODEL_PRICING.get(model)
     if not pricing:
@@ -58,9 +69,14 @@ def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
         # Default fallback: mid-range pricing
         pricing = (3.0, 15.0)
 
-    input_cost = (input_tokens / 1_000_000) * pricing[0]
-    output_cost = (output_tokens / 1_000_000) * pricing[1]
-    return input_cost + output_cost
+    input_price = pricing[0]
+    output_price = pricing[1]
+
+    input_cost = (input_tokens / 1_000_000) * input_price
+    output_cost = (output_tokens / 1_000_000) * output_price
+    cache_creation_cost = (cache_creation_input_tokens / 1_000_000) * input_price * 1.25
+    cache_read_cost = (cache_read_input_tokens / 1_000_000) * input_price * 0.1
+    return input_cost + output_cost + cache_creation_cost + cache_read_cost
 
 
 class TokenTracker:
@@ -83,10 +99,37 @@ class TokenTracker:
 
         # Track file positions for incremental reading
         self._file_offsets: dict[str, int] = {}
+        self._codex_last_rowid: int = 0
         self._last_scan_time: float = 0.0
+
+        # State file for persisting offsets across restarts
+        self._state_file = config.state_dir / "token_tracker_state.json"
+        self._load_state()
 
         # Token tracking config from ai_config
         self._tt_config = getattr(config, "token_tracking", {}) or {}
+
+    def _load_state(self) -> None:
+        """Load persisted state (file offsets, codex rowid) from disk."""
+        if self._state_file.exists():
+            try:
+                data = json.loads(self._state_file.read_text(encoding="utf-8"))
+                self._file_offsets = {k: int(v) for k, v in data.get("file_offsets", {}).items()}
+                self._codex_last_rowid = int(data.get("codex_last_rowid", 0))
+            except Exception:
+                logger.opt(exception=True).debug("Failed to load token tracker state")
+
+    def _save_state(self) -> None:
+        """Persist state (file offsets, codex rowid) to disk."""
+        try:
+            self._state_file.parent.mkdir(parents=True, exist_ok=True)
+            data = {
+                "file_offsets": self._file_offsets,
+                "codex_last_rowid": self._codex_last_rowid,
+            }
+            self._state_file.write_text(json.dumps(data), encoding="utf-8")
+        except Exception:
+            logger.opt(exception=True).debug("Failed to save token tracker state")
 
     def scan(self) -> None:
         """Run one scan cycle: read local files, extract tokens, emit metrics."""
@@ -100,6 +143,7 @@ class TokenTracker:
         except Exception:
             logger.opt(exception=True).error("Error scanning Codex data")
 
+        self._save_state()
         self._last_scan_time = time.monotonic()
 
     def _scan_claude_code(self) -> None:
@@ -167,7 +211,11 @@ class TokenTracker:
             return
 
         model = entry.get("model", "") or entry.get("message", {}).get("model", "") or "unknown"
-        cost = estimate_cost(model, input_tokens, output_tokens)
+        cost = estimate_cost(
+            model, input_tokens, output_tokens,
+            cache_creation_input_tokens=cache_creation,
+            cache_read_input_tokens=cache_read,
+        )
 
         labels = {"tool.name": "claude-code", "model.name": model}
 
@@ -180,7 +228,6 @@ class TokenTracker:
         # Store in prompt DB if available
         if self.prompt_db:
             prompt_text = None
-            response_text = None
 
             # Extract prompt/response text if configured
             if self._tt_config.get("capture_prompt_text", True):
@@ -241,12 +288,14 @@ class TokenTracker:
             if "input_tokens" not in columns:
                 return
 
-            # Read new sessions since last scan
+            # Read only new sessions since last processed rowid
             cursor = conn.execute(
-                "SELECT * FROM sessions WHERE input_tokens > 0 ORDER BY rowid"
+                "SELECT rowid, * FROM sessions WHERE input_tokens > 0 AND rowid > ? ORDER BY rowid",
+                (self._codex_last_rowid,),
             )
 
             for row in cursor:
+                self._codex_last_rowid = row["rowid"]
                 input_tokens = row["input_tokens"] or 0
                 output_tokens = row["output_tokens"] if "output_tokens" in columns else 0
                 model = row["model"] if "model" in columns else "unknown"

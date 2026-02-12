@@ -41,6 +41,8 @@ class CLIDetector:
         self.telemetry = telemetry
         self._state: dict[str, _CLIState] = {}
         self._desktop_detector = desktop_detector
+        # Bug H1: track currently running tools for ObservableGauge callback
+        self._running_tools: dict[str, dict] = {}  # tool_name -> labels
 
         # Build process name → tool config lookup
         self._process_map: dict[str, dict] = {}
@@ -136,13 +138,20 @@ class CLIDetector:
                 "cli.category": tool_cfg.get("category", "unknown"),
             }
 
-            # Running state transitions
+            # Running state transitions (log only; metric via ObservableGauge)
             if is_running and not state.was_running:
-                self.telemetry.cli_running.add(1, labels)
-                logger.info("Detected AI CLI tool: {} (PIDs: {})", tool_name, found.get(tool_name))
+                logger.info(
+                    "Detected AI CLI tool: {} (PIDs: {})",
+                    tool_name, found.get(tool_name),
+                )
             elif not is_running and state.was_running:
-                self.telemetry.cli_running.add(-1, labels)
                 logger.info("AI CLI tool stopped: {}", tool_name)
+
+            # Update running tools snapshot for ObservableGauge callback
+            if is_running:
+                self._running_tools[tool_name] = labels
+            else:
+                self._running_tools.pop(tool_name, None)
 
             # Duration tracking (while running)
             if is_running and state.last_scan_time > 0:
@@ -157,6 +166,14 @@ class CLIDetector:
             state.pids = found.get(tool_name, set())
             state.was_running = is_running
             state.last_scan_time = now
+
+        # Push snapshot to TelemetryManager for ObservableGauge callback
+        self.telemetry.set_running_cli(self._running_tools)
+
+    @property
+    def running_tools(self) -> dict[str, dict]:
+        """Return currently running tools (name -> labels) for ObservableGauge."""
+        return dict(self._running_tools)
 
     def _find_tool_config(self, tool_name: str) -> dict | None:
         for tool in self.config.ai_cli_tools:

@@ -20,6 +20,7 @@ def _make_config(apps):
 def _make_telemetry():
     tm = MagicMock()
     tm.app_running = MagicMock()
+    tm.set_running_apps = MagicMock()
     tm.app_active_duration = MagicMock()
     tm.app_estimated_cost = MagicMock()
     tm.app_cpu_usage = MagicMock()
@@ -61,17 +62,19 @@ class TestDesktopForegroundDetection:
 
         # First scan: detects app, sets initial state
         detector.scan()
-        telemetry.app_running.add.assert_called_once_with(
-            1, {"app.name": "ChatGPT", "app.category": "chat"}
-        )
+        # Bug H1: verify snapshot pushed (not .add())
+        telemetry.set_running_apps.assert_called()
+        snapshot = telemetry.set_running_apps.call_args[0][0]
+        assert "ChatGPT" in snapshot
         # No duration yet (first scan, last_scan_time was 0)
         telemetry.app_active_duration.add.assert_not_called()
 
         # Second scan: now duration should be tracked
-        telemetry.app_running.add.reset_mock()
+        telemetry.set_running_apps.reset_mock()
         detector.scan()
-        # Running state doesn't change so no add call for running
-        telemetry.app_running.add.assert_not_called()
+        # Snapshot still contains the app
+        snapshot = telemetry.set_running_apps.call_args[0][0]
+        assert "ChatGPT" in snapshot
         # But active duration should be tracked
         telemetry.app_active_duration.add.assert_called_once()
 
@@ -130,9 +133,10 @@ class TestDesktopCmdlineFallback:
 
         detector.scan()
 
-        telemetry.app_running.add.assert_called_once_with(
-            1, {"app.name": "Cursor", "app.category": "code"}
-        )
+        # Bug H1: verify snapshot pushed (not .add())
+        telemetry.set_running_apps.assert_called()
+        snapshot = telemetry.set_running_apps.call_args[0][0]
+        assert "Cursor" in snapshot
 
 
 class TestDesktopAccessDenied:
@@ -166,10 +170,10 @@ class TestDesktopAccessDenied:
 
         detector.scan()  # Should not raise
 
-        # App was still detected as running
-        telemetry.app_running.add.assert_called_once_with(
-            1, {"app.name": "TestApp", "app.category": "chat"}
-        )
+        # App was still detected as running (Bug H1: check snapshot)
+        telemetry.set_running_apps.assert_called()
+        snapshot = telemetry.set_running_apps.call_args[0][0]
+        assert "TestApp" in snapshot
 
     def test_no_such_process_during_scan(self, mocker):
         """psutil.NoSuchProcess during iteration is handled gracefully."""
@@ -225,3 +229,104 @@ class TestDesktopAccessDenied:
         )
 
         detector.scan()  # Should not raise
+
+
+class TestDesktopCpuMemoryGauge:
+    """Bug C3: CPU and memory metrics must use Gauge.set(), not Histogram.record()."""
+
+    def test_cpu_memory_uses_set_not_record(self, mocker):
+        """desktop.py must call .set() on cpu/memory gauges, not .record()."""
+        apps = [
+            {
+                "name": "ChatGPT",
+                "process_names": {"macos": ["ChatGPT"], "windows": ["ChatGPT.exe"]},
+                "category": "chat",
+                "cost_per_hour": 0.50,
+            }
+        ]
+        config = _make_config(apps)
+        telemetry = _make_telemetry()
+        detector = DesktopDetector(config, telemetry)
+
+        procs = [_fake_process(100, "ChatGPT", cpu=25.0, mem_mb=512)]
+        mocker.patch("psutil.process_iter", return_value=procs)
+        mocker.patch(
+            "ai_cost_observer.detectors.desktop.get_foreground_app",
+            return_value=None,
+        )
+
+        detector.scan()
+
+        # Gauge uses .set(), not .record()
+        telemetry.app_cpu_usage.set.assert_called_once()
+        telemetry.app_memory_usage.set.assert_called_once()
+
+        # Verify correct values were reported
+        cpu_call = telemetry.app_cpu_usage.set.call_args
+        mem_call = telemetry.app_memory_usage.set.call_args
+        assert cpu_call[0][0] == 25.0
+        assert mem_call[0][0] == 512.0
+
+
+class TestDesktopObservableGauge:
+    """Bug H1: app_running must use ObservableGauge to avoid drift on crash."""
+
+    def test_running_apps_tracked_as_set(self, mocker):
+        """DesktopDetector tracks running apps as a set for ObservableGauge callback."""
+        apps = [
+            {
+                "name": "ChatGPT",
+                "process_names": {"macos": ["ChatGPT"], "windows": ["ChatGPT.exe"]},
+                "category": "chat",
+                "cost_per_hour": 0.50,
+            }
+        ]
+        config = _make_config(apps)
+        telemetry = _make_telemetry()
+        detector = DesktopDetector(config, telemetry)
+
+        # Scan with ChatGPT running
+        procs = [_fake_process(100, "ChatGPT")]
+        mocker.patch("psutil.process_iter", return_value=procs)
+        mocker.patch(
+            "ai_cost_observer.detectors.desktop.get_foreground_app",
+            return_value=None,
+        )
+        detector.scan()
+
+        # Detector must expose current running apps
+        running = detector.running_apps
+        assert "ChatGPT" in running
+
+        # App stops
+        mocker.patch("psutil.process_iter", return_value=[])
+        detector.scan()
+
+        running = detector.running_apps
+        assert "ChatGPT" not in running
+
+    def test_running_apps_no_add_calls(self, mocker):
+        """DesktopDetector must NOT call app_running.add() anymore."""
+        apps = [
+            {
+                "name": "ChatGPT",
+                "process_names": {"macos": ["ChatGPT"], "windows": ["ChatGPT.exe"]},
+                "category": "chat",
+                "cost_per_hour": 0.50,
+            }
+        ]
+        config = _make_config(apps)
+        telemetry = _make_telemetry()
+        detector = DesktopDetector(config, telemetry)
+
+        procs = [_fake_process(100, "ChatGPT")]
+        mocker.patch("psutil.process_iter", return_value=procs)
+        mocker.patch(
+            "ai_cost_observer.detectors.desktop.get_foreground_app",
+            return_value=None,
+        )
+
+        detector.scan()
+
+        # With ObservableGauge, detector should NOT call .add() on app_running
+        telemetry.app_running.add.assert_not_called()

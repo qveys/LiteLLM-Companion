@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import logging
-import platform
 import signal
 import sys
 import threading
-import time
-from pathlib import Path
 from threading import Event
 
 from loguru import logger
@@ -51,26 +48,6 @@ def _setup_logging(debug: bool = False) -> None:
 
     # Intercept all stdlib logging and route through loguru
     logging.basicConfig(handlers=[_InterceptHandler()], level=0, force=True)
-
-
-def _free_port(port: int) -> None:
-    """Kill any process listening on the given port so the agent can bind."""
-    import subprocess
-
-    try:
-        result = subprocess.run(
-            ["lsof", "-ti", f":{port}"],
-            capture_output=True, text=True, timeout=5,
-        )
-        pids = result.stdout.strip()
-        if not pids:
-            return
-        for pid_str in pids.splitlines():
-            pid = int(pid_str.strip())
-            logger.warning("Port {} in use by PID {} — killing it.", port, pid)
-            subprocess.run(["kill", "-9", str(pid)], timeout=5)
-    except Exception:
-        logger.opt(exception=True).debug("Could not free port {}", port)
 
 
 def _run_periodic(name: str, fn: callable, interval: float, stop_event: Event) -> None:
@@ -161,7 +138,6 @@ def run() -> None:
             "token_tracker": token_tracker,
         }
 
-        _free_port(config.http_receiver_port)
         http_thread = start_http_receiver(config, telemetry)
         token_interval = tt_config.get("api_polling_interval_seconds", 300)
 

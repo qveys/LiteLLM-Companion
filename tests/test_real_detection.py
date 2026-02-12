@@ -135,18 +135,25 @@ def _exclude_desktop_overlapping_tools(
 def _make_mock_telemetry() -> Mock:
     """Create a mock TelemetryManager capturing all metric calls."""
     telemetry = Mock()
+    # ObservableGauges (Bug H1: was UpDownCounter)
+    telemetry.app_running = Mock()
+    telemetry.set_running_apps = Mock()
+    telemetry.cli_running = Mock()
+    telemetry.set_running_cli = Mock()
+    # Counters
     for attr in [
-        "app_running", "app_active_duration", "app_estimated_cost",
+        "app_active_duration", "app_estimated_cost",
     ]:
         counter = Mock()
         counter.add = Mock()
         setattr(telemetry, attr, counter)
+    # Gauges (Bug C3: was Histogram)
     for attr in ["app_cpu_usage", "app_memory_usage"]:
-        hist = Mock()
-        hist.record = Mock()
-        setattr(telemetry, attr, hist)
+        gauge = Mock()
+        gauge.set = Mock()
+        setattr(telemetry, attr, gauge)
     for attr in [
-        "cli_running", "cli_active_duration", "cli_estimated_cost", "cli_command_count",
+        "cli_active_duration", "cli_estimated_cost", "cli_command_count",
     ]:
         counter = Mock()
         counter.add = Mock()
@@ -208,13 +215,8 @@ class TestRealDesktopDetection:
         # Run detector scan
         detector.scan()
 
-        # Collect which apps the detector reported as newly running
-        detected_names: set[str] = set()
-        for call in telemetry.app_running.add.call_args_list:
-            args, kwargs = call
-            if args[0] == 1:  # increment = newly detected
-                labels = args[1] if len(args) > 1 else kwargs.get("attributes", {})
-                detected_names.add(labels.get("app.name", ""))
+        # Bug H1: Collect detected apps from running_apps property
+        detected_names: set[str] = set(detector.running_apps.keys())
 
         print("\n--- Desktop Detection Results ---")
         print(f"  Expected (from psutil scan): {sorted(expected.keys())}")
@@ -313,13 +315,8 @@ class TestRealCLIDetection:
         # Run detector scan
         detector.scan()
 
-        # Collect which tools the detector reported as newly running
-        detected_names: set[str] = set()
-        for call in telemetry.cli_running.add.call_args_list:
-            args, kwargs = call
-            if args[0] == 1:
-                labels = args[1] if len(args) > 1 else kwargs.get("attributes", {})
-                detected_names.add(labels.get("cli.name", ""))
+        # Bug H1: Collect detected tools from running_tools property
+        detected_names: set[str] = set(detector.running_tools.keys())
 
         print("\n--- CLI Detection Results ---")
         print(f"  Expected (from psutil scan): {sorted(expected.keys())}")

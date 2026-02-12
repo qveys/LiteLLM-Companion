@@ -26,17 +26,18 @@ def mock_config(tmp_path: Path) -> AppConfig:
 def mock_telemetry() -> Mock:
     """Provides a mock TelemetryManager."""
     telemetry = Mock()
+    # ObservableGauges (Bug H1: was UpDownCounter)
     telemetry.app_running = Mock()
-    telemetry.app_running.add = Mock()
+    telemetry.set_running_apps = Mock()
     # Add mocks for other metrics that will be called
     telemetry.app_active_duration = Mock()
     telemetry.app_active_duration.add = Mock()
     telemetry.app_estimated_cost = Mock()
     telemetry.app_estimated_cost.add = Mock()
     telemetry.app_cpu_usage = Mock()
-    telemetry.app_cpu_usage.record = Mock()
+    telemetry.app_cpu_usage.set = Mock()
     telemetry.app_memory_usage = Mock()
-    telemetry.app_memory_usage.record = Mock()
+    telemetry.app_memory_usage.set = Mock()
     return telemetry
 
 def create_mock_process(name: str, pid: int):
@@ -49,33 +50,41 @@ def create_mock_process(name: str, pid: int):
     return proc
 
 def test_desktop_detector_state_changes(mock_config: AppConfig, mock_telemetry: Mock, mocker):
-    """Test the stateful tracking of application start and stop."""
+    """Test the stateful tracking of application start and stop.
+
+    Bug H1: Uses ObservableGauge via set_running_apps() instead of
+    UpDownCounter .add(1)/.add(-1).
+    """
     # Mock active_window to return nothing, so we only test process running state
     mocker.patch("ai_cost_observer.detectors.desktop.get_foreground_app", return_value=None)
-    
+
     detector = DesktopDetector(mock_config, mock_telemetry)
 
     # --- Scan 1: A new AI process appears ---
     mock_process_list = [create_mock_process("CoolAI", 123)]
     mocker.patch("psutil.process_iter", return_value=mock_process_list)
-    
+
     detector.scan()
-    
-    # Assert that the 'app_running' counter was incremented by 1
-    mock_telemetry.app_running.add.assert_called_once_with(1, {"app.name": "Cool AI App", "app.category": "unknown"})
+
+    # Verify running apps snapshot is pushed to telemetry
+    mock_telemetry.set_running_apps.assert_called()
+    snapshot = mock_telemetry.set_running_apps.call_args[0][0]
+    assert "Cool AI App" in snapshot
 
     # --- Scan 2: The process is still running ---
-    mock_telemetry.app_running.add.reset_mock() # Reset mock for the next assertion
-    
+    mock_telemetry.set_running_apps.reset_mock()
+
     detector.scan()
 
-    # Assert that the counter was NOT called again, as state hasn't changed
-    mock_telemetry.app_running.add.assert_not_called()
+    # Snapshot still contains the app
+    snapshot = mock_telemetry.set_running_apps.call_args[0][0]
+    assert "Cool AI App" in snapshot
 
     # --- Scan 3: The process disappears ---
-    mocker.patch("psutil.process_iter", return_value=[]) # Empty process list
-    
+    mocker.patch("psutil.process_iter", return_value=[])
+
     detector.scan()
 
-    # Assert that the 'app_running' counter was decremented by 1
-    mock_telemetry.app_running.add.assert_called_once_with(-1, {"app.name": "Cool AI App", "app.category": "unknown"})
+    # Snapshot should be empty (app stopped)
+    snapshot = mock_telemetry.set_running_apps.call_args[0][0]
+    assert "Cool AI App" not in snapshot

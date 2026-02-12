@@ -10,6 +10,7 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Callable
+from urllib.parse import urlparse
 
 from loguru import logger
 
@@ -180,6 +181,34 @@ class BrowserHistoryParser:
             if tmp_path and os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
+    @staticmethod
+    def _url_matches_domain(url: str, domain: str) -> bool:
+        """Check if a URL matches a tracked domain using proper hostname parsing.
+
+        Uses urllib.parse.urlparse() to extract the hostname, then checks for
+        exact match or subdomain match (hostname ends with '.'+domain).
+        Domains that include a path component (e.g. 'github.com/copilot') also
+        require the URL path to start with that prefix.
+        """
+        try:
+            parsed = urlparse(url)
+            hostname = (parsed.hostname or "").lower()
+        except Exception:
+            return False
+
+        if "/" in domain:
+            # Domain includes a path prefix, e.g. "github.com/copilot"
+            dom_part, _, path_part = domain.partition("/")
+            path_prefix = "/" + path_part
+            host_ok = hostname == dom_part or hostname.endswith("." + dom_part)
+            if host_ok and parsed.path.startswith(path_prefix):
+                return True
+        else:
+            if hostname == domain or hostname.endswith("." + domain):
+                return True
+
+        return False
+
     def _process_visits(self, visits: list[dict], browser_name: str) -> None:
         """Group visits by AI domain, estimate sessions, update metrics."""
         domain_visits: dict[str, list[dict]] = {}
@@ -187,7 +216,7 @@ class BrowserHistoryParser:
         for visit in visits:
             url = visit.get("url", "")
             for domain, domain_cfg in self._domain_lookup.items():
-                if domain in url:
+                if self._url_matches_domain(url, domain):
                     if domain not in domain_visits:
                         domain_visits[domain] = []
                     domain_visits[domain].append(visit)

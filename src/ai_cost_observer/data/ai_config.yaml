@@ -228,7 +228,7 @@ ai_cli_tools:
     process_names:
       macos: ["claude"]
       windows: ["claude.exe"]
-    command_patterns: ["claude", "cc"]
+    command_patterns: ["claude"]
     category: code
     cost_per_hour: 1.00
 

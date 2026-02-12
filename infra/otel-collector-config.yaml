@@ -30,7 +30,7 @@ exporters:
     endpoint: 0.0.0.0:8889
     resource_to_telemetry_conversion:
       enabled: true
-    metric_expiration: 5m
+    metric_expiration: 90m
 
 service:
   extensions: [bearertokenauth]

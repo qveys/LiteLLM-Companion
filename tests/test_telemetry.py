@@ -52,9 +52,10 @@ class TestTelemetryInstruments:
         assert tm.prompt_count_total is not None
 
         # Verify meter was called to create instruments
-        assert mock_meter.create_up_down_counter.call_count == 2  # app_running, cli_running
+        # Bug H1: app_running and cli_running are now ObservableGauges
+        assert mock_meter.create_observable_gauge.call_count == 2
         assert mock_meter.create_counter.call_count == 12
-        assert mock_meter.create_histogram.call_count == 2  # cpu, memory
+        assert mock_meter.create_gauge.call_count == 2  # cpu, memory (Bug C3: was Histogram)
 
     @patch("ai_cost_observer.telemetry.metrics")
     @patch("ai_cost_observer.telemetry.MeterProvider")
@@ -150,6 +151,103 @@ class TestTelemetryInstruments:
 
             mock_create.assert_called_once_with(config)
             assert tm.exporter is mock_grpc_exporter
+
+    @patch("ai_cost_observer.telemetry.metrics")
+    @patch("ai_cost_observer.telemetry.MeterProvider")
+    @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
+    @patch("ai_cost_observer.telemetry.Resource")
+    def test_cpu_memory_are_gauges_not_histograms(
+        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
+    ):
+        """Bug C3: cpu.usage and memory.usage must be Gauges, not Histograms.
+
+        Histograms generate _bucket/_count/_sum metrics, but Grafana queries
+        these as simple gauge values. Using Gauge produces a single value metric.
+        """
+        from ai_cost_observer.telemetry import TelemetryManager
+
+        mock_exporter = MagicMock()
+        mock_meter = MagicMock()
+        mock_provider_cls.return_value.get_meter.return_value = mock_meter
+
+        config = AppConfig()
+        config.otel_endpoint = "localhost:4317"
+        config.host_name = "test-host"
+
+        tm = TelemetryManager(config, exporter=mock_exporter)
+
+        # cpu_usage and memory_usage should be created via create_gauge, not create_histogram
+        gauge_names = [
+            call.kwargs.get("name") or call.args[0]
+            for call in mock_meter.create_gauge.call_args_list
+        ]
+        assert "ai.app.cpu.usage" in gauge_names, (
+            "ai.app.cpu.usage should be a Gauge, not a Histogram"
+        )
+        assert "ai.app.memory.usage" in gauge_names, (
+            "ai.app.memory.usage should be a Gauge, not a Histogram"
+        )
+
+        # Verify no Histograms are created for these metrics
+        histogram_names = [
+            call.kwargs.get("name") or call.args[0]
+            for call in mock_meter.create_histogram.call_args_list
+        ]
+        assert "ai.app.cpu.usage" not in histogram_names, (
+            "ai.app.cpu.usage should NOT be a Histogram"
+        )
+        assert "ai.app.memory.usage" not in histogram_names, (
+            "ai.app.memory.usage should NOT be a Histogram"
+        )
+
+    @patch("ai_cost_observer.telemetry.metrics")
+    @patch("ai_cost_observer.telemetry.MeterProvider")
+    @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
+    @patch("ai_cost_observer.telemetry.Resource")
+    def test_running_counters_are_observable_gauges(
+        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
+    ):
+        """Bug H1: app_running and cli_running must be ObservableGauge, not UpDownCounter.
+
+        UpDownCounter drifts on crash/restart because the decrement is never sent.
+        ObservableGauge uses a callback that reports the current count at collection
+        time, so a restart always starts from the correct state.
+        """
+        from ai_cost_observer.telemetry import TelemetryManager
+
+        mock_exporter = MagicMock()
+        mock_meter = MagicMock()
+        mock_provider_cls.return_value.get_meter.return_value = mock_meter
+
+        config = AppConfig()
+        config.otel_endpoint = "localhost:4317"
+        config.host_name = "test-host"
+
+        tm = TelemetryManager(config, exporter=mock_exporter)
+
+        # Should use create_observable_gauge for running counters
+        obs_gauge_names = [
+            call.kwargs.get("name", call.args[0] if call.args else None)
+            for call in mock_meter.create_observable_gauge.call_args_list
+        ]
+        assert "ai.app.running" in obs_gauge_names, (
+            "ai.app.running must be an ObservableGauge"
+        )
+        assert "ai.cli.running" in obs_gauge_names, (
+            "ai.cli.running must be an ObservableGauge"
+        )
+
+        # Should NOT use create_up_down_counter for these
+        udc_names = [
+            call.kwargs.get("name", call.args[0] if call.args else None)
+            for call in mock_meter.create_up_down_counter.call_args_list
+        ]
+        assert "ai.app.running" not in udc_names, (
+            "ai.app.running should NOT be an UpDownCounter"
+        )
+        assert "ai.cli.running" not in udc_names, (
+            "ai.cli.running should NOT be an UpDownCounter"
+        )
 
     @patch.dict("os.environ", {"OTEL_EXPORTER_OTLP_PROTOCOL": "http/json"})
     def test_telemetry_http_exporter_selection(self):
