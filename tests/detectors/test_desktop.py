@@ -34,9 +34,9 @@ def mock_telemetry() -> Mock:
     telemetry.app_estimated_cost = Mock()
     telemetry.app_estimated_cost.add = Mock()
     telemetry.app_cpu_usage = Mock()
-    telemetry.app_cpu_usage.record = Mock()
+    telemetry.app_cpu_usage.set = Mock()
     telemetry.app_memory_usage = Mock()
-    telemetry.app_memory_usage.record = Mock()
+    telemetry.app_memory_usage.set = Mock()
     return telemetry
 
 def create_mock_process(name: str, pid: int):

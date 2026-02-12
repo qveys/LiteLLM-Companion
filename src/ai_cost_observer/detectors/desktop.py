@@ -150,11 +150,11 @@ class DesktopDetector:
                     cost = cost_per_hour * (elapsed / 3600)
                     self.telemetry.app_estimated_cost.add(cost, labels)
 
-            # Resource usage histograms
+            # Resource usage gauges
             if app_name in cpu_by_app:
-                self.telemetry.app_cpu_usage.record(cpu_by_app[app_name], labels)
+                self.telemetry.app_cpu_usage.set(cpu_by_app[app_name], labels)
             if app_name in mem_by_app:
-                self.telemetry.app_memory_usage.record(mem_by_app[app_name], labels)
+                self.telemetry.app_memory_usage.set(mem_by_app[app_name], labels)
 
             state.pids = found.get(app_name, set())
             state.was_running = is_running

@@ -225,3 +225,40 @@ class TestDesktopAccessDenied:
         )
 
         detector.scan()  # Should not raise
+
+
+class TestDesktopCpuMemoryGauge:
+    """Bug C3: CPU and memory metrics must use Gauge.set(), not Histogram.record()."""
+
+    def test_cpu_memory_uses_set_not_record(self, mocker):
+        """desktop.py must call .set() on cpu/memory gauges, not .record()."""
+        apps = [
+            {
+                "name": "ChatGPT",
+                "process_names": {"macos": ["ChatGPT"], "windows": ["ChatGPT.exe"]},
+                "category": "chat",
+                "cost_per_hour": 0.50,
+            }
+        ]
+        config = _make_config(apps)
+        telemetry = _make_telemetry()
+        detector = DesktopDetector(config, telemetry)
+
+        procs = [_fake_process(100, "ChatGPT", cpu=25.0, mem_mb=512)]
+        mocker.patch("psutil.process_iter", return_value=procs)
+        mocker.patch(
+            "ai_cost_observer.detectors.desktop.get_foreground_app",
+            return_value=None,
+        )
+
+        detector.scan()
+
+        # Gauge uses .set(), not .record()
+        telemetry.app_cpu_usage.set.assert_called_once()
+        telemetry.app_memory_usage.set.assert_called_once()
+
+        # Verify correct values were reported
+        cpu_call = telemetry.app_cpu_usage.set.call_args
+        mem_call = telemetry.app_memory_usage.set.call_args
+        assert cpu_call[0][0] == 25.0
+        assert mem_call[0][0] == 512.0

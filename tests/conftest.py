@@ -65,11 +65,11 @@ def mock_telemetry():
     telemetry.tokens_cost_usd_total.add = Mock()
     telemetry.prompt_count_total = Mock()
     telemetry.prompt_count_total.add = Mock()
-    # Histograms
+    # Gauges (Bug C3: was Histogram)
     telemetry.app_cpu_usage = Mock()
-    telemetry.app_cpu_usage.record = Mock()
+    telemetry.app_cpu_usage.set = Mock()
     telemetry.app_memory_usage = Mock()
-    telemetry.app_memory_usage.record = Mock()
+    telemetry.app_memory_usage.set = Mock()
     return telemetry
 
 

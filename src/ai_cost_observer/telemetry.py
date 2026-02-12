@@ -66,8 +66,8 @@ class TelemetryManager:
         # --- Metric Instruments ---
         self.app_running = self.meter.create_up_down_counter(name="ai.app.running", unit="1")
         self.app_active_duration = self.meter.create_counter(name="ai.app.active.duration", unit="s")
-        self.app_cpu_usage = self.meter.create_histogram(name="ai.app.cpu.usage", unit="%")
-        self.app_memory_usage = self.meter.create_histogram(name="ai.app.memory.usage", unit="MB")
+        self.app_cpu_usage = self.meter.create_gauge(name="ai.app.cpu.usage", unit="%")
+        self.app_memory_usage = self.meter.create_gauge(name="ai.app.memory.usage", unit="MB")
         self.app_estimated_cost = self.meter.create_counter(name="ai.app.estimated.cost", unit="USD")
         self.browser_domain_active_duration = self.meter.create_counter(name="ai.browser.domain.active.duration", unit="s")
         self.browser_domain_visit_count = self.meter.create_counter(name="ai.browser.domain.visit.count", unit="1")
