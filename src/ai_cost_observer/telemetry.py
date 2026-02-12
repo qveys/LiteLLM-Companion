@@ -115,16 +115,16 @@ class TelemetryManager:
             name="ai.cli.command.count", unit="1",
         )
         self.tokens_input_total = self.meter.create_counter(
-            name="ai.tokens.input_total", unit="1",
+            name="ai.tokens.input", unit="1",
         )
         self.tokens_output_total = self.meter.create_counter(
-            name="ai.tokens.output_total", unit="1",
+            name="ai.tokens.output", unit="1",
         )
         self.tokens_cost_usd_total = self.meter.create_counter(
-            name="ai.tokens.cost_usd_total", unit="1",
+            name="ai.tokens.cost_usd", unit="1",
         )
         self.prompt_count_total = self.meter.create_counter(
-            name="ai.prompt.count_total", unit="1",
+            name="ai.prompt.count", unit="1",
         )
 
         logger.debug("TelemetryManager initialized.")
