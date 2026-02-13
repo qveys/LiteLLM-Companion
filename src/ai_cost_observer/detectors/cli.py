@@ -16,7 +16,8 @@ from ai_cost_observer.telemetry import TelemetryManager
 if TYPE_CHECKING:
     from ai_cost_observer.detectors.desktop import DesktopDetector
 
-_OS_KEY = "macos" if platform.system() == "Darwin" else "windows"
+_OS = platform.system()
+_OS_KEY = "macos" if _OS == "Darwin" else ("linux" if _OS == "Linux" else "windows")
 
 
 @dataclass

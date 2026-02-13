@@ -325,7 +325,10 @@ class PromptDB:
                 conn.commit()
                 if deleted > 0:
                     conn.execute("VACUUM")
-                logger.debug("Cleaned up {} prompts older than {} days", deleted, self.retention_days)
+                logger.debug(
+                    "Cleaned up {} prompts older than {} days",
+                    deleted, self.retention_days,
+                )
                 return deleted
             finally:
                 conn.close()

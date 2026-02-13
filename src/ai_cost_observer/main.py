@@ -41,7 +41,10 @@ def _setup_logging(debug: bool = False) -> None:
     # Add loguru handler with the desired format
     logger.add(
         sys.stdout,
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
+        format=(
+            "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8}"
+            " | {name}:{function}:{line} - {message}"
+        ),
         level="DEBUG" if debug else "INFO",
         colorize=True,
     )
@@ -144,12 +147,22 @@ def run() -> None:
         background_threads = [
             threading.Thread(
                 target=_run_periodic,
-                args=("browser_history", detectors["browser_history"].scan, config.browser_history_interval_seconds, stop_event),
+                args=(
+                    "browser_history",
+                    detectors["browser_history"].scan,
+                    config.browser_history_interval_seconds,
+                    stop_event,
+                ),
                 daemon=True, name="browser-history",
             ),
             threading.Thread(
                 target=_run_periodic,
-                args=("shell_history", detectors["shell_history"].scan, config.shell_history_interval_seconds, stop_event),
+                args=(
+                    "shell_history",
+                    detectors["shell_history"].scan,
+                    config.shell_history_interval_seconds,
+                    stop_event,
+                ),
                 daemon=True, name="shell-history",
             ),
             threading.Thread(
