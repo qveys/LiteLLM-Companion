@@ -174,7 +174,7 @@ class TestTelemetryInstruments:
         config.otel_endpoint = "localhost:4317"
         config.host_name = "test-host"
 
-        tm = TelemetryManager(config, exporter=mock_exporter)
+        TelemetryManager(config, exporter=mock_exporter)
 
         # cpu_usage and memory_usage should be created via create_gauge, not create_histogram
         gauge_names = [
@@ -223,7 +223,7 @@ class TestTelemetryInstruments:
         config.otel_endpoint = "localhost:4317"
         config.host_name = "test-host"
 
-        tm = TelemetryManager(config, exporter=mock_exporter)
+        TelemetryManager(config, exporter=mock_exporter)
 
         # Should use create_observable_gauge for running counters
         obs_gauge_names = [

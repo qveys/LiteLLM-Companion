@@ -143,7 +143,8 @@ async function ensurePendingTokenEventsLoaded() {
     if (Array.isArray(raw)) {
       pendingTokenEvents = raw;
     }
-  } catch {
+  } catch (error) {
+    console.error("Failed to load pending token events from storage:", error);
     // Storage read failed — start with empty array
   }
   pendingTokenEventsLoaded = true;
@@ -152,7 +153,8 @@ async function ensurePendingTokenEventsLoaded() {
 async function persistPendingTokenEvents() {
   try {
     await chrome.storage.local.set({ [STORAGE_PENDING_TOKEN_EVENTS_KEY]: pendingTokenEvents });
-  } catch {
+  } catch (error) {
+    console.error("Failed to persist pending token events to storage:", error);
     // Storage write failed — events remain in memory
   }
 }
@@ -415,6 +417,8 @@ async function exportTokenEvents() {
     // Agent is down — re-queue events for next cycle
     if (error.message && error.message.includes("Failed to fetch")) {
       console.warn("Agent not reachable for token export. Will retry next cycle.");
+    } else {
+      console.error("Unexpected error during token export:", error);
     }
     pendingTokenEvents = events.concat(pendingTokenEvents);
     await persistPendingTokenEvents();

@@ -4,6 +4,7 @@ import json
 import sqlite3
 import tempfile
 from pathlib import Path
+from unittest import mock
 from unittest.mock import MagicMock
 
 from ai_cost_observer.config import AppConfig
@@ -118,8 +119,7 @@ class TestTokenTrackerCacheCostInScan:
 
         tracker = TokenTracker(config, telemetry)
 
-        import unittest.mock
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -158,8 +158,7 @@ class TestTokenTrackerCacheCostInScan:
 
         tracker = TokenTracker(config, telemetry)
 
-        import unittest.mock
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -209,8 +208,7 @@ class TestTokenTrackerClaudeCode:
         tracker = TokenTracker(config, telemetry)
 
         # Patch home to use tmp_path
-        import unittest.mock
-        with unittest.mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
+        with mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
             tracker.scan()
 
         # Should have recorded metrics for the entry with usage data
@@ -241,15 +239,14 @@ class TestTokenTrackerClaudeCode:
 
         tracker = TokenTracker(config, telemetry)
 
-        import unittest.mock
-        with unittest.mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
+        with mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
             tracker.scan()
 
         assert telemetry.tokens_input_total.add.call_count == 1
 
         # Second scan with no new data
         telemetry.reset_mock()
-        with unittest.mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
+        with mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
             tracker.scan()
 
         telemetry.tokens_input_total.add.assert_not_called()
@@ -261,7 +258,7 @@ class TestTokenTrackerClaudeCode:
             f.write(json.dumps(entry2) + "\n")
 
         telemetry.reset_mock()
-        with unittest.mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
+        with mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
             tracker.scan()
 
         assert telemetry.tokens_input_total.add.call_count == 1
@@ -289,11 +286,10 @@ class TestTokenTrackerOffsetPersistence:
         telemetry.tokens_cost_usd_total = MagicMock()
         telemetry.prompt_count_total = MagicMock()
 
-        import unittest.mock
 
         # First tracker instance: scan once
         tracker1 = TokenTracker(config, telemetry)
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -304,7 +300,7 @@ class TestTokenTrackerOffsetPersistence:
         # Simulate restart: create a NEW tracker instance
         telemetry.reset_mock()
         tracker2 = TokenTracker(config, telemetry)
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -336,8 +332,7 @@ class TestTokenTrackerOffsetPersistence:
 
         tracker = TokenTracker(config, telemetry)
 
-        import unittest.mock
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -369,11 +364,10 @@ class TestTokenTrackerOffsetPersistence:
         telemetry.tokens_cost_usd_total = MagicMock()
         telemetry.prompt_count_total = MagicMock()
 
-        import unittest.mock
 
         # First instance: scan
         tracker1 = TokenTracker(config, telemetry)
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -390,7 +384,7 @@ class TestTokenTrackerOffsetPersistence:
         # Simulate restart
         telemetry.reset_mock()
         tracker2 = TokenTracker(config, telemetry)
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -474,8 +468,7 @@ class TestCodexScannerIncremental:
 
         tracker = TokenTracker(config, telemetry)
 
-        import unittest.mock
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -485,7 +478,7 @@ class TestCodexScannerIncremental:
 
         # Second scan with no new data: should NOT re-count
         telemetry.reset_mock()
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -514,8 +507,7 @@ class TestCodexScannerIncremental:
 
         tracker = TokenTracker(config, telemetry)
 
-        import unittest.mock
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -533,7 +525,7 @@ class TestCodexScannerIncremental:
         conn.close()
 
         telemetry.reset_mock()
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -564,11 +556,10 @@ class TestCodexScannerIncremental:
         telemetry.tokens_cost_usd_total = MagicMock()
         telemetry.prompt_count_total = MagicMock()
 
-        import unittest.mock
 
         # First tracker instance
         tracker1 = TokenTracker(config, telemetry)
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):
@@ -579,7 +570,7 @@ class TestCodexScannerIncremental:
         # Simulate restart: new tracker instance
         telemetry.reset_mock()
         tracker2 = TokenTracker(config, telemetry)
-        with unittest.mock.patch(
+        with mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
         ):

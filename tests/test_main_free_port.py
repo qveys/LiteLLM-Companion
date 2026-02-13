@@ -1,7 +1,6 @@
 """Tests for Bug H2: _free_port() removal — no arbitrary process killing."""
 
 import importlib
-import socket
 
 from werkzeug.serving import BaseWSGIServer
 
