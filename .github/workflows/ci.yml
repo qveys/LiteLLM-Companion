@@ -42,5 +42,5 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: Run tests
-        run: uv run python -m pytest
+      - name: Run tests with coverage
+        run: uv run python -m pytest --cov --cov-report=term-missing

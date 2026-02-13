@@ -1,12 +1,16 @@
 """Tests for the CLI tool detector."""
-import pytest
-from unittest.mock import Mock, MagicMock
+
 from pathlib import Path
+from unittest.mock import MagicMock, Mock
+
+import pytest
+
 from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.cli import CLIDetector
 
 # Note: In a larger test suite, fixtures and helpers would be moved to conftest.py
 # For this exercise, we redefine them for clarity.
+
 
 @pytest.fixture
 def mock_cli_config(tmp_path: Path) -> AppConfig:
@@ -21,10 +25,11 @@ def mock_cli_config(tmp_path: Path) -> AppConfig:
                 "macos": ["ollama"],
                 "windows": ["ollama.exe"],
             },
-            "cost_per_hour": 0.5
+            "cost_per_hour": 0.5,
         }
     ]
     return config
+
 
 @pytest.fixture
 def mock_telemetry() -> Mock:
@@ -39,6 +44,7 @@ def mock_telemetry() -> Mock:
     telemetry.cli_estimated_cost.add = Mock()
     return telemetry
 
+
 def create_mock_process(name: str, pid: int):
     """Factory for creating mock psutil.Process objects."""
     proc = MagicMock()
@@ -46,6 +52,7 @@ def create_mock_process(name: str, pid: int):
     proc.cpu_percent.return_value = 5.0
     proc.memory_info.return_value = Mock(rss=100 * 1024 * 1024)
     return proc
+
 
 def test_cli_detector_state_changes(mock_cli_config: AppConfig, mock_telemetry: Mock, mocker):
     """Test the stateful tracking of CLI tool start and stop.

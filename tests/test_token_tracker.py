@@ -2,8 +2,6 @@
 
 import json
 import sqlite3
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock
 
 from ai_cost_observer.config import AppConfig
@@ -63,8 +61,11 @@ class TestEstimateCost:
         """When cache tokens not provided, cost is unchanged."""
         cost_without = estimate_cost("claude-sonnet-4-5", 1_000_000, 1_000_000)
         cost_with_zero = estimate_cost(
-            "claude-sonnet-4-5", 1_000_000, 1_000_000,
-            cache_creation_input_tokens=0, cache_read_input_tokens=0,
+            "claude-sonnet-4-5",
+            1_000_000,
+            1_000_000,
+            cache_creation_input_tokens=0,
+            cache_read_input_tokens=0,
         )
         assert cost_without == cost_with_zero
 
@@ -119,6 +120,7 @@ class TestTokenTrackerCacheCostInScan:
         tracker = TokenTracker(config, telemetry)
 
         import unittest.mock
+
         with unittest.mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
@@ -159,6 +161,7 @@ class TestTokenTrackerCacheCostInScan:
         tracker = TokenTracker(config, telemetry)
 
         import unittest.mock
+
         with unittest.mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
@@ -210,7 +213,10 @@ class TestTokenTrackerClaudeCode:
 
         # Patch home to use tmp_path
         import unittest.mock
-        with unittest.mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
+
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path
+        ):
             tracker.scan()
 
         # Should have recorded metrics for the entry with usage data
@@ -227,8 +233,11 @@ class TestTokenTrackerClaudeCode:
         project_dir.mkdir(parents=True)
         jsonl_file = project_dir / "session-456.jsonl"
 
-        entry1 = {"role": "assistant", "model": "claude-sonnet-4-5",
-                   "usage": {"input_tokens": 100, "output_tokens": 50}}
+        entry1 = {
+            "role": "assistant",
+            "model": "claude-sonnet-4-5",
+            "usage": {"input_tokens": 100, "output_tokens": 50},
+        }
         jsonl_file.write_text(json.dumps(entry1) + "\n")
 
         config = AppConfig()
@@ -242,26 +251,36 @@ class TestTokenTrackerClaudeCode:
         tracker = TokenTracker(config, telemetry)
 
         import unittest.mock
-        with unittest.mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
+
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path
+        ):
             tracker.scan()
 
         assert telemetry.tokens_input_total.add.call_count == 1
 
         # Second scan with no new data
         telemetry.reset_mock()
-        with unittest.mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path
+        ):
             tracker.scan()
 
         telemetry.tokens_input_total.add.assert_not_called()
 
         # Add new data
-        entry2 = {"role": "assistant", "model": "gpt-4o",
-                   "usage": {"input_tokens": 200, "output_tokens": 100}}
+        entry2 = {
+            "role": "assistant",
+            "model": "gpt-4o",
+            "usage": {"input_tokens": 200, "output_tokens": 100},
+        }
         with open(jsonl_file, "a") as f:
             f.write(json.dumps(entry2) + "\n")
 
         telemetry.reset_mock()
-        with unittest.mock.patch("ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path):
+        with unittest.mock.patch(
+            "ai_cost_observer.detectors.token_tracker.Path.home", return_value=tmp_path
+        ):
             tracker.scan()
 
         assert telemetry.tokens_input_total.add.call_count == 1
@@ -275,8 +294,11 @@ class TestTokenTrackerOffsetPersistence:
         state_dir = tmp_path / "state"
         state_dir.mkdir(parents=True)
 
-        entry1 = {"role": "assistant", "model": "claude-sonnet-4-5",
-                   "usage": {"input_tokens": 100, "output_tokens": 50}}
+        entry1 = {
+            "role": "assistant",
+            "model": "claude-sonnet-4-5",
+            "usage": {"input_tokens": 100, "output_tokens": 50},
+        }
         jsonl_file = project_dir / "session-persist.jsonl"
         jsonl_file.write_text(json.dumps(entry1) + "\n")
 
@@ -320,8 +342,11 @@ class TestTokenTrackerOffsetPersistence:
         state_dir = tmp_path / "state"
         state_dir.mkdir(parents=True)
 
-        entry = {"role": "assistant", "model": "gpt-4o",
-                 "usage": {"input_tokens": 50, "output_tokens": 25}}
+        entry = {
+            "role": "assistant",
+            "model": "gpt-4o",
+            "usage": {"input_tokens": 50, "output_tokens": 25},
+        }
         jsonl_file = project_dir / "session-state.jsonl"
         jsonl_file.write_text(json.dumps(entry) + "\n")
 
@@ -337,6 +362,7 @@ class TestTokenTrackerOffsetPersistence:
         tracker = TokenTracker(config, telemetry)
 
         import unittest.mock
+
         with unittest.mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
@@ -355,8 +381,11 @@ class TestTokenTrackerOffsetPersistence:
         state_dir = tmp_path / "state"
         state_dir.mkdir(parents=True)
 
-        entry1 = {"role": "assistant", "model": "claude-sonnet-4-5",
-                   "usage": {"input_tokens": 100, "output_tokens": 50}}
+        entry1 = {
+            "role": "assistant",
+            "model": "claude-sonnet-4-5",
+            "usage": {"input_tokens": 100, "output_tokens": 50},
+        }
         jsonl_file = project_dir / "session-new.jsonl"
         jsonl_file.write_text(json.dumps(entry1) + "\n")
 
@@ -382,8 +411,11 @@ class TestTokenTrackerOffsetPersistence:
         assert telemetry.tokens_input_total.add.call_count == 1
 
         # Append new data
-        entry2 = {"role": "assistant", "model": "gpt-4o",
-                   "usage": {"input_tokens": 200, "output_tokens": 100}}
+        entry2 = {
+            "role": "assistant",
+            "model": "gpt-4o",
+            "usage": {"input_tokens": 200, "output_tokens": 100},
+        }
         with open(jsonl_file, "a") as f:
             f.write(json.dumps(entry2) + "\n")
 
@@ -459,9 +491,12 @@ class TestCodexScannerIncremental:
         state_dir = tmp_path / "state"
         state_dir.mkdir(parents=True)
 
-        _create_codex_db(codex_db, [
-            ("sess-1", "o3-mini", 500, 200),
-        ])
+        _create_codex_db(
+            codex_db,
+            [
+                ("sess-1", "o3-mini", 500, 200),
+            ],
+        )
 
         config = AppConfig()
         config.token_tracking = {}
@@ -475,6 +510,7 @@ class TestCodexScannerIncremental:
         tracker = TokenTracker(config, telemetry)
 
         import unittest.mock
+
         with unittest.mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
@@ -499,9 +535,12 @@ class TestCodexScannerIncremental:
         state_dir = tmp_path / "state"
         state_dir.mkdir(parents=True)
 
-        _create_codex_db(codex_db, [
-            ("sess-1", "o3-mini", 500, 200),
-        ])
+        _create_codex_db(
+            codex_db,
+            [
+                ("sess-1", "o3-mini", 500, 200),
+            ],
+        )
 
         config = AppConfig()
         config.token_tracking = {}
@@ -515,6 +554,7 @@ class TestCodexScannerIncremental:
         tracker = TokenTracker(config, telemetry)
 
         import unittest.mock
+
         with unittest.mock.patch(
             "ai_cost_observer.detectors.token_tracker.Path.home",
             return_value=tmp_path,
@@ -551,9 +591,12 @@ class TestCodexScannerIncremental:
         state_dir = tmp_path / "state"
         state_dir.mkdir(parents=True)
 
-        _create_codex_db(codex_db, [
-            ("sess-1", "o3-mini", 500, 200),
-        ])
+        _create_codex_db(
+            codex_db,
+            [
+                ("sess-1", "o3-mini", 500, 200),
+            ],
+        )
 
         config = AppConfig()
         config.token_tracking = {}

@@ -23,7 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 macos = ["pyobjc-framework-Cocoa>=10.0"]
 windows = ["pywin32>=306"]
-dev = ["pytest>=8.0", "ruff>=0.5", "pytest-mock>=3.14"]
+dev = ["pytest>=8.0", "ruff>=0.5", "pytest-mock>=3.14", "pytest-cov>=6.0"]
 
 [project.scripts]
 ai-cost-observer = "ai_cost_observer.main:run"
@@ -40,3 +40,15 @@ select = ["E", "F", "I", "N", "W"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["ai_cost_observer"]
+omit = [
+    "*/platform/macos.py",
+    "*/platform/windows.py",
+    "*/__main__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80

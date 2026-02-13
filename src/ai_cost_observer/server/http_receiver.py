@@ -19,9 +19,9 @@ _token_tracker = None
 
 # --- Rate limiting and payload size constants ---
 MAX_PAYLOAD_BYTES = 1_048_576  # 1 MB max request body
-RATE_LIMIT_REQUESTS = 60       # max requests per window
-RATE_LIMIT_WINDOW_SECONDS = 60 # window duration
-MAX_EVENTS_PER_REQUEST = 100   # max events in a single batch
+RATE_LIMIT_REQUESTS = 60  # max requests per window
+RATE_LIMIT_WINDOW_SECONDS = 60  # window duration
+MAX_EVENTS_PER_REQUEST = 100  # max events in a single batch
 
 
 def set_token_tracker(tracker) -> None:
@@ -33,8 +33,11 @@ def set_token_tracker(tracker) -> None:
 class _RateLimiter:
     """Simple in-memory per-IP sliding window rate limiter."""
 
-    def __init__(self, max_requests: int = RATE_LIMIT_REQUESTS,
-                 window_seconds: int = RATE_LIMIT_WINDOW_SECONDS) -> None:
+    def __init__(
+        self,
+        max_requests: int = RATE_LIMIT_REQUESTS,
+        window_seconds: int = RATE_LIMIT_WINDOW_SECONDS,
+    ) -> None:
         self._max_requests = max_requests
         self._window_seconds = window_seconds
         self._requests: dict[str, list[float]] = defaultdict(list)
@@ -80,11 +83,18 @@ def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
     @app.route("/", methods=["GET"])
     def root():
         logger.debug("Browser visited root endpoint")
-        return jsonify({
-            "service": "ai-cost-observer",
-            "status": "running",
-            "endpoints": ["/health", "/metrics/browser", "/api/tokens", "/api/extension-config"],
-        })
+        return jsonify(
+            {
+                "service": "ai-cost-observer",
+                "status": "running",
+                "endpoints": [
+                    "/health",
+                    "/metrics/browser",
+                    "/api/tokens",
+                    "/api/extension-config",
+                ],
+            }
+        )
 
     @app.route("/health", methods=["GET"])
     def health():
@@ -96,11 +106,13 @@ def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
         domains = [d["domain"] for d in config.ai_domains]
         api_patterns = config.api_intercept_patterns
         cost_rates = {d["domain"]: d.get("cost_per_hour", 0) for d in config.ai_domains}
-        return jsonify({
-            "domains": domains,
-            "api_patterns": api_patterns,
-            "cost_rates": cost_rates,
-        })
+        return jsonify(
+            {
+                "domains": domains,
+                "api_patterns": api_patterns,
+                "cost_rates": cost_rates,
+            }
+        )
 
     @app.route("/metrics/browser", methods=["POST"])
     def receive_browser_metrics():
@@ -156,7 +168,9 @@ def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
 
             logger.debug(
                 "Extension: {} — {:.0f}s, {} visits",
-                domain, duration_seconds, visit_count,
+                domain,
+                duration_seconds,
+                visit_count,
             )
 
         return jsonify({"status": "ok", "processed": len(events)})
@@ -203,14 +217,15 @@ def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
                     cost = estimate_cost(model, input_tokens, output_tokens)
                     if cost > 0:
                         telemetry.tokens_cost_usd_total.add(cost, labels)
-                    telemetry.prompt_count_total.add(
-                        1, {"tool.name": tool, "source": "browser"}
-                    )
+                    telemetry.prompt_count_total.add(1, {"tool.name": tool, "source": "browser"})
 
                 processed += 1
                 logger.debug(
                     "Token intercept: {} model={} in={} out={}",
-                    tool, model, input_tokens, output_tokens,
+                    tool,
+                    model,
+                    input_tokens,
+                    output_tokens,
                 )
 
         return jsonify({"status": "ok", "processed": processed})
@@ -225,6 +240,7 @@ def start_http_receiver(config: AppConfig, telemetry: TelemetryManager) -> threa
         # ("* Serving Flask app ..." / "* Debug mode: off" use click.echo, not logging)
         logging.getLogger("werkzeug").setLevel(logging.WARNING)
         import flask.cli
+
         flask.cli.show_server_banner = lambda *_a, **_kw: None
 
         app = create_app(config, telemetry)

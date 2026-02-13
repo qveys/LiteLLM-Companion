@@ -17,6 +17,7 @@ NO namespace configured):
   4. Gauge / ObservableGauge / UpDownCounter does NOT append "_total".
   5. Histogram generates base name + "_bucket" / "_sum" / "_count".
 """
+
 from __future__ import annotations
 
 import json
@@ -33,29 +34,29 @@ import pytest
 # Each entry: (otel_name, unit, otel_type, expected_prometheus_base_name)
 # otel_type is one of: "counter", "up_down_counter", "histogram"
 OTEL_METRICS = [
-    ("ai.app.running",                        "1",   "observable_gauge"),
-    ("ai.app.active.duration",                "s",   "counter"),
-    ("ai.app.cpu.usage",                      "%",   "gauge"),
-    ("ai.app.memory.usage",                   "MB",  "gauge"),
-    ("ai.app.estimated.cost",                 "USD", "counter"),
-    ("ai.browser.domain.active.duration",     "s",   "counter"),
-    ("ai.browser.domain.visit.count",         "1",   "counter"),
-    ("ai.browser.domain.estimated.cost",      "USD", "counter"),
-    ("ai.cli.running",                        "1",   "observable_gauge"),
-    ("ai.cli.active.duration",                "s",   "counter"),
-    ("ai.cli.estimated.cost",                 "USD", "counter"),
-    ("ai.cli.command.count",                  "1",   "counter"),
-    ("ai.tokens.input",                       "1",   "counter"),
-    ("ai.tokens.output",                      "1",   "counter"),
-    ("ai.tokens.cost_usd",                    "1",   "counter"),
-    ("ai.prompt.count",                       "1",   "counter"),
+    ("ai.app.running", "1", "observable_gauge"),
+    ("ai.app.active.duration", "s", "counter"),
+    ("ai.app.cpu.usage", "%", "gauge"),
+    ("ai.app.memory.usage", "MB", "gauge"),
+    ("ai.app.estimated.cost", "USD", "counter"),
+    ("ai.browser.domain.active.duration", "s", "counter"),
+    ("ai.browser.domain.visit.count", "1", "counter"),
+    ("ai.browser.domain.estimated.cost", "USD", "counter"),
+    ("ai.cli.running", "1", "observable_gauge"),
+    ("ai.cli.active.duration", "s", "counter"),
+    ("ai.cli.estimated.cost", "USD", "counter"),
+    ("ai.cli.command.count", "1", "counter"),
+    ("ai.tokens.input", "1", "counter"),
+    ("ai.tokens.output", "1", "counter"),
+    ("ai.tokens.cost_usd", "1", "counter"),
+    ("ai.prompt.count", "1", "counter"),
 ]
 
 UNIT_SUFFIX_MAP = {
-    "1":   "",
-    "s":   "_seconds",
-    "%":   "_percent",
-    "MB":  "_MB",
+    "1": "",
+    "s": "_seconds",
+    "%": "_percent",
+    "MB": "_MB",
     "USD": "_USD",
 }
 
@@ -110,22 +111,73 @@ DASHBOARD_FILES = sorted(DASHBOARDS_DIR.glob("*.json"))
 # Matches sequences of [a-zA-Z_:][a-zA-Z0-9_:]* that look like metric names,
 # filtering out PromQL keywords and Grafana variables.
 PROMQL_METRIC_RE = re.compile(
-    r'\b([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\{|\[|$|\)|\s|>|<|==|!=|\+|-|\*|/|,)',
+    r"\b([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\{|\[|$|\)|\s|>|<|==|!=|\+|-|\*|/|,)",
 )
 
 PROMQL_KEYWORDS = {
-    "sum", "avg", "min", "max", "count", "count_values",
-    "topk", "bottomk", "quantile", "stddev", "stdvar",
-    "rate", "irate", "increase", "delta", "idelta",
-    "histogram_quantile", "label_replace", "label_join",
-    "absent", "absent_over_time", "ceil", "floor", "round",
-    "sort", "sort_desc", "clamp", "clamp_max", "clamp_min",
-    "vector", "scalar", "time", "timestamp", "resets",
-    "changes", "deriv", "predict_linear", "holt_winters",
-    "by", "without", "on", "ignoring", "group_left", "group_right",
-    "bool", "offset", "or", "and", "unless",
-    "last_over_time", "sgn", "acos", "asin", "atan", "cos", "sin", "tan",
-    "exp", "ln", "log2", "log10", "sqrt", "abs",
+    "sum",
+    "avg",
+    "min",
+    "max",
+    "count",
+    "count_values",
+    "topk",
+    "bottomk",
+    "quantile",
+    "stddev",
+    "stdvar",
+    "rate",
+    "irate",
+    "increase",
+    "delta",
+    "idelta",
+    "histogram_quantile",
+    "label_replace",
+    "label_join",
+    "absent",
+    "absent_over_time",
+    "ceil",
+    "floor",
+    "round",
+    "sort",
+    "sort_desc",
+    "clamp",
+    "clamp_max",
+    "clamp_min",
+    "vector",
+    "scalar",
+    "time",
+    "timestamp",
+    "resets",
+    "changes",
+    "deriv",
+    "predict_linear",
+    "holt_winters",
+    "by",
+    "without",
+    "on",
+    "ignoring",
+    "group_left",
+    "group_right",
+    "bool",
+    "offset",
+    "or",
+    "and",
+    "unless",
+    "last_over_time",
+    "sgn",
+    "acos",
+    "asin",
+    "atan",
+    "cos",
+    "sin",
+    "tan",
+    "exp",
+    "ln",
+    "log2",
+    "log10",
+    "sqrt",
+    "abs",
 }
 
 
@@ -173,19 +225,19 @@ def extract_metric_names_from_expr(expr: str) -> set[str]:
     metrics: set[str] = set()
 
     # 1. Handle label_values(metric_name, label_name) -- first arg is metric.
-    label_values_re = re.compile(r'label_values\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*,')
+    label_values_re = re.compile(r"label_values\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*,")
     for m in label_values_re.findall(expr):
         if m.startswith("ai_"):
             metrics.add(m)
 
     # 2. Strip everything inside { } to avoid matching label names.
-    stripped = re.sub(r'\{[^}]*\}', '{}', expr)
+    stripped = re.sub(r"\{[^}]*\}", "{}", expr)
 
     # 3. Strip by(...) and without(...) clauses (contain label names, not metrics).
-    stripped = re.sub(r'\b(?:by|without)\s*\([^)]*\)', '', stripped)
+    stripped = re.sub(r"\b(?:by|without)\s*\([^)]*\)", "", stripped)
 
     # 4. Also strip label_values(...) calls (already handled above).
-    stripped = re.sub(r'label_values\([^)]*\)', '', stripped)
+    stripped = re.sub(r"label_values\([^)]*\)", "", stripped)
 
     # 5. Strip label_replace(...) arguments beyond the metric (args are label names).
     # label_replace(expr, "dst", "$1", "src", "regex") -- we keep the metric
@@ -211,14 +263,16 @@ def extract_metric_names_from_expr(expr: str) -> set[str]:
 # 3. Tests
 # ---------------------------------------------------------------------------
 
+
 class TestOtelToPrometheusConversion:
     """Verify the expected Prometheus names for all 16 OTel metrics."""
 
     def test_all_16_metrics_defined(self):
         assert len(OTEL_METRICS) == 16
 
-    @pytest.mark.parametrize("otel_name,unit,otel_type", OTEL_METRICS,
-                             ids=[m[0] for m in OTEL_METRICS])
+    @pytest.mark.parametrize(
+        "otel_name,unit,otel_type", OTEL_METRICS, ids=[m[0] for m in OTEL_METRICS]
+    )
     def test_conversion_produces_valid_name(self, otel_name, unit, otel_type):
         prom = otel_to_prometheus(otel_name, unit, otel_type)
         # Must not contain dots
@@ -235,29 +289,27 @@ class TestOtelToPrometheusConversion:
         a double '_total_total' suffix."""
         for otel_name, unit, otel_type in OTEL_METRICS:
             prom = otel_to_prometheus(otel_name, unit, otel_type)
-            assert "_total_total" not in prom, (
-                f"{otel_name} -> {prom} has double _total"
-            )
+            assert "_total_total" not in prom, f"{otel_name} -> {prom} has double _total"
 
     def test_expected_names_snapshot(self):
         """Snapshot of all expected Prometheus metric names."""
         expected = {
-            "ai.app.running":                       "ai_app_running",
-            "ai.app.active.duration":               "ai_app_active_duration_seconds_total",
-            "ai.app.cpu.usage":                     "ai_app_cpu_usage_percent",
-            "ai.app.memory.usage":                  "ai_app_memory_usage_MB",
-            "ai.app.estimated.cost":                "ai_app_estimated_cost_USD_total",
-            "ai.browser.domain.active.duration":    "ai_browser_domain_active_duration_seconds_total",
-            "ai.browser.domain.visit.count":        "ai_browser_domain_visit_count_total",
-            "ai.browser.domain.estimated.cost":     "ai_browser_domain_estimated_cost_USD_total",
-            "ai.cli.running":                       "ai_cli_running",
-            "ai.cli.active.duration":               "ai_cli_active_duration_seconds_total",
-            "ai.cli.estimated.cost":                "ai_cli_estimated_cost_USD_total",
-            "ai.cli.command.count":                 "ai_cli_command_count_total",
-            "ai.tokens.input":                      "ai_tokens_input_total",
-            "ai.tokens.output":                     "ai_tokens_output_total",
-            "ai.tokens.cost_usd":                   "ai_tokens_cost_usd_total",
-            "ai.prompt.count":                      "ai_prompt_count_total",
+            "ai.app.running": "ai_app_running",
+            "ai.app.active.duration": "ai_app_active_duration_seconds_total",
+            "ai.app.cpu.usage": "ai_app_cpu_usage_percent",
+            "ai.app.memory.usage": "ai_app_memory_usage_MB",
+            "ai.app.estimated.cost": "ai_app_estimated_cost_USD_total",
+            "ai.browser.domain.active.duration": "ai_browser_domain_active_duration_seconds_total",
+            "ai.browser.domain.visit.count": "ai_browser_domain_visit_count_total",
+            "ai.browser.domain.estimated.cost": "ai_browser_domain_estimated_cost_USD_total",
+            "ai.cli.running": "ai_cli_running",
+            "ai.cli.active.duration": "ai_cli_active_duration_seconds_total",
+            "ai.cli.estimated.cost": "ai_cli_estimated_cost_USD_total",
+            "ai.cli.command.count": "ai_cli_command_count_total",
+            "ai.tokens.input": "ai_tokens_input_total",
+            "ai.tokens.output": "ai_tokens_output_total",
+            "ai.tokens.cost_usd": "ai_tokens_cost_usd_total",
+            "ai.prompt.count": "ai_prompt_count_total",
         }
         assert EXPECTED_PROMETHEUS_NAMES == expected
 
@@ -286,8 +338,7 @@ class TestDashboardPromQLMetrics:
                 for m in sorted(metrics):
                     if m not in ALL_VALID_PROMETHEUS_NAMES:
                         errors.append(
-                            f"  {fname} | {panel_title} [{ref_id}]: "
-                            f"'{m}' not in expected set"
+                            f"  {fname} | {panel_title} [{ref_id}]: '{m}' not in expected set"
                         )
         if errors:
             detail = "\n".join(errors)
@@ -322,10 +373,7 @@ class TestDashboardPromQLMetrics:
 
         if missing:
             detail = "\n".join(missing)
-            pytest.fail(
-                f"{len(missing)} metric(s) not referenced in any dashboard:\n"
-                f"{detail}"
-            )
+            pytest.fail(f"{len(missing)} metric(s) not referenced in any dashboard:\n{detail}")
 
     def test_no_double_total_in_dashboards(self):
         """No dashboard should reference a metric with '_total_total'."""
@@ -341,10 +389,7 @@ class TestDashboardPromQLMetrics:
                         )
         if errors:
             detail = "\n".join(errors)
-            pytest.fail(
-                f"Found {len(errors)} metric(s) with double _total_total:\n"
-                f"{detail}"
-            )
+            pytest.fail(f"Found {len(errors)} metric(s) with double _total_total:\n{detail}")
 
 
 class TestOtelCollectorConfig:
@@ -353,8 +398,7 @@ class TestOtelCollectorConfig:
     @pytest.fixture(autouse=True)
     def _load_config(self):
         config_path = (
-            Path(__file__).resolve().parent.parent
-            / "infra" / "otel-collector-config.yaml"
+            Path(__file__).resolve().parent.parent / "infra" / "otel-collector-config.yaml"
         )
         self.config_text = config_path.read_text()
 

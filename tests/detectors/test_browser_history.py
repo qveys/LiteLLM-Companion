@@ -1,11 +1,15 @@
 """Tests for the browser history parser."""
-import pytest
+
 import sqlite3
 import time
 from pathlib import Path
 from unittest.mock import Mock
+
+import pytest
+
 from ai_cost_observer.config import AppConfig
-from ai_cost_observer.detectors.browser_history import BrowserHistoryParser, _CHROME_EPOCH_OFFSET
+from ai_cost_observer.detectors.browser_history import _CHROME_EPOCH_OFFSET, BrowserHistoryParser
+
 
 @pytest.fixture
 def mock_config(tmp_path: Path) -> AppConfig:
@@ -16,6 +20,7 @@ def mock_config(tmp_path: Path) -> AppConfig:
         {"name": "Test AI", "domain": "test-ai.com", "cost_per_hour": 4.0, "category": "test"},
     ]
     return config
+
 
 @pytest.fixture
 def mock_telemetry() -> Mock:
@@ -29,6 +34,7 @@ def mock_telemetry() -> Mock:
     telemetry.browser_domain_estimated_cost.add = Mock()
     return telemetry
 
+
 @pytest.fixture
 def chrome_history_db(tmp_path: Path) -> Path:
     """Creates a mock Chrome history SQLite DB for testing."""
@@ -38,30 +44,52 @@ def chrome_history_db(tmp_path: Path) -> Path:
 
     # Create schema
     cursor.execute("CREATE TABLE urls (id INTEGER PRIMARY KEY, url TEXT, title TEXT)")
-    cursor.execute("CREATE TABLE visits (id INTEGER PRIMARY KEY, url INTEGER, visit_time INTEGER, visit_duration INTEGER)")
+    cursor.execute(
+        "CREATE TABLE visits"
+        " (id INTEGER PRIMARY KEY, url INTEGER, visit_time INTEGER, visit_duration INTEGER)"
+    )
 
     # Insert data
     now_unix = time.time()
     now_chrome = int((now_unix + _CHROME_EPOCH_OFFSET) * 1_000_000)
-    
+
     # Session 1: two visits close together
-    cursor.execute("INSERT INTO urls (id, url, title) VALUES (1, 'https://test-ai.com/chat', 'Test Chat')")
-    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (1, {now_chrome - 600_000_000}, {120_000_000})")
-    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (1, {now_chrome - 300_000_000}, {180_000_000})")
+    cursor.execute(
+        "INSERT INTO urls (id, url, title) VALUES (1, 'https://test-ai.com/chat', 'Test Chat')"
+    )
+    cursor.execute(
+        "INSERT INTO visits (url, visit_time, visit_duration) VALUES (1, ?, ?)",
+        (now_chrome - 600_000_000, 120_000_000),
+    )
+    cursor.execute(
+        "INSERT INTO visits (url, visit_time, visit_duration) VALUES (1, ?, ?)",
+        (now_chrome - 300_000_000, 180_000_000),
+    )
 
     # Session 2: one visit much later (or earlier, doesn't matter for test)
-    cursor.execute("INSERT INTO urls (id, url, title) VALUES (2, 'https://test-ai.com/chat/2', 'Test Chat 2')")
-    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (2, {now_chrome - 3_600_000_000}, {60_000_000})")
+    cursor.execute(
+        "INSERT INTO urls (id, url, title) VALUES (2, 'https://test-ai.com/chat/2', 'Test Chat 2')"
+    )
+    cursor.execute(
+        "INSERT INTO visits (url, visit_time, visit_duration) VALUES (2, ?, ?)",
+        (now_chrome - 3_600_000_000, 60_000_000),
+    )
 
     # Non-AI visit
     cursor.execute("INSERT INTO urls (id, url, title) VALUES (3, 'https://example.com', 'Example')")
-    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (3, {now_chrome - 100_000_000}, {30_000_000})")
+    cursor.execute(
+        "INSERT INTO visits (url, visit_time, visit_duration) VALUES (3, ?, ?)",
+        (now_chrome - 100_000_000, 30_000_000),
+    )
 
     conn.commit()
     conn.close()
     return db_path
 
-def test_browser_history_parsing_and_sessioning(mock_config: AppConfig, mock_telemetry: Mock, chrome_history_db: Path, mocker):
+
+def test_browser_history_parsing_and_sessioning(
+    mock_config: AppConfig, mock_telemetry: Mock, chrome_history_db: Path, mocker
+):
     """Test full flow: parsing, grouping, session estimation."""
     parser = BrowserHistoryParser(mock_config, mock_telemetry)
     # Set the 'since' to be far in the past to read all our test entries

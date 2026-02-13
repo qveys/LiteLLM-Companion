@@ -42,21 +42,23 @@ class AppConfig:
     ai_domains: list[dict] = field(default_factory=list)
     ai_cli_tools: list[dict] = field(default_factory=list)
     api_intercept_patterns: list[dict] = field(default_factory=list)
-    token_tracking: dict = field(default_factory=lambda: {
-        "enabled": True,
-        "storage_path": "auto",
-        "api_polling_interval_seconds": 300,
-        "retention_days": 90,
-        "encrypt_prompts": True,
-        "capture_prompt_text": True,
-        "capture_response_text": True,
-        "sources": {
-            "claude_code": True,
-            "codex": True,
-            "gemini": True,
-            "browser_extension": True,
-        },
-    })
+    token_tracking: dict = field(
+        default_factory=lambda: {
+            "enabled": True,
+            "storage_path": "auto",
+            "api_polling_interval_seconds": 300,
+            "retention_days": 90,
+            "encrypt_prompts": True,
+            "capture_prompt_text": True,
+            "capture_response_text": True,
+            "sources": {
+                "claude_code": True,
+                "codex": True,
+                "gemini": True,
+                "browser_extension": True,
+            },
+        }
+    )
 
 
 def _load_builtin_ai_config() -> dict:

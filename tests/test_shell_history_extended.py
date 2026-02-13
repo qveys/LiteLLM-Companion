@@ -50,11 +50,7 @@ class TestBashHistoryParsing:
         """Bash history with plain one-command-per-line format is parsed."""
         history_file = tmp_path / ".bash_history"
         history_file.write_text(
-            "ollama run llama3\n"
-            "ls -la\n"
-            "claude-code -m 'fix bug'\n"
-            "cd /tmp\n"
-            "ollama pull qwen\n",
+            "ollama run llama3\nls -la\nclaude-code -m 'fix bug'\ncd /tmp\nollama pull qwen\n",
             encoding="utf-8",
         )
 
@@ -85,7 +81,8 @@ class TestBashHistoryParsing:
         parser.scan()
 
         shell_telemetry.cli_command_count.add.assert_called_once_with(
-            1, {"cli.name": "Ollama", "cli.category": "unknown"},
+            1,
+            {"cli.name": "Ollama", "cli.category": "unknown"},
         )
 
 
@@ -96,10 +93,7 @@ class TestPowerShellHistoryParsing:
         """PowerShell history is one command per line, same as bash."""
         history_file = tmp_path / "ConsoleHost_history.txt"
         history_file.write_text(
-            "Get-Process\n"
-            "ollama run mistral\n"
-            "dir C:\\Users\n"
-            "codex generate code\n",
+            "Get-Process\nollama run mistral\ndir C:\\Users\ncodex generate code\n",
             encoding="utf-8",
         )
 

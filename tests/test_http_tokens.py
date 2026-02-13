@@ -35,17 +35,19 @@ class TestTokensEndpoint:
         with self.app.test_client() as client:
             resp = client.post(
                 "/api/tokens",
-                data=json.dumps({
-                    "events": [
-                        {
-                            "type": "api_intercept",
-                            "tool": "claude-web",
-                            "model": "claude-sonnet-4-5",
-                            "input_tokens": 1000,
-                            "output_tokens": 500,
-                        }
-                    ]
-                }),
+                data=json.dumps(
+                    {
+                        "events": [
+                            {
+                                "type": "api_intercept",
+                                "tool": "claude-web",
+                                "model": "claude-sonnet-4-5",
+                                "input_tokens": 1000,
+                                "output_tokens": 500,
+                            }
+                        ]
+                    }
+                ),
                 content_type="application/json",
             )
 
@@ -66,17 +68,19 @@ class TestTokensEndpoint:
         with self.app.test_client() as client:
             resp = client.post(
                 "/api/tokens",
-                data=json.dumps({
-                    "events": [
-                        {
-                            "type": "api_intercept",
-                            "tool": "some-tool",
-                            "model": "unknown-model-xyz",
-                            "input_tokens": 5000,
-                            "output_tokens": 1000,
-                        }
-                    ]
-                }),
+                data=json.dumps(
+                    {
+                        "events": [
+                            {
+                                "type": "api_intercept",
+                                "tool": "some-tool",
+                                "model": "unknown-model-xyz",
+                                "input_tokens": 5000,
+                                "output_tokens": 1000,
+                            }
+                        ]
+                    }
+                ),
                 content_type="application/json",
             )
 
@@ -91,17 +95,19 @@ class TestTokensEndpoint:
         with self.app.test_client() as client:
             resp = client.post(
                 "/api/tokens",
-                data=json.dumps({
-                    "events": [
-                        {
-                            "type": "api_intercept",
-                            "tool": "test-tool",
-                            "model": "gpt-4o",
-                            "input_tokens": 0,
-                            "output_tokens": 0,
-                        }
-                    ]
-                }),
+                data=json.dumps(
+                    {
+                        "events": [
+                            {
+                                "type": "api_intercept",
+                                "tool": "test-tool",
+                                "model": "gpt-4o",
+                                "input_tokens": 0,
+                                "output_tokens": 0,
+                            }
+                        ]
+                    }
+                ),
                 content_type="application/json",
             )
 
@@ -118,17 +124,19 @@ class TestTokensEndpoint:
         with app.test_client() as client:
             resp = client.post(
                 "/api/tokens",
-                data=json.dumps({
-                    "events": [
-                        {
-                            "type": "api_intercept",
-                            "tool": "chatgpt-web",
-                            "model": "gpt-4o",
-                            "input_tokens": 2000,
-                            "output_tokens": 800,
-                        }
-                    ]
-                }),
+                data=json.dumps(
+                    {
+                        "events": [
+                            {
+                                "type": "api_intercept",
+                                "tool": "chatgpt-web",
+                                "model": "gpt-4o",
+                                "input_tokens": 2000,
+                                "output_tokens": 800,
+                            }
+                        ]
+                    }
+                ),
                 content_type="application/json",
             )
 

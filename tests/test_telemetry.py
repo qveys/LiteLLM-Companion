@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, Mock, patch
 import platform
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from ai_cost_observer.config import AppConfig
 
@@ -65,8 +63,8 @@ class TestTelemetryInstruments:
         self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
     ):
         """Verify resource attributes: service.name, host.name, os.type, etc."""
-        from ai_cost_observer.telemetry import TelemetryManager
         from ai_cost_observer import __version__
+        from ai_cost_observer.telemetry import TelemetryManager
 
         mock_exporter = MagicMock()
         mock_provider_cls.return_value.get_meter.return_value = MagicMock()
@@ -174,7 +172,7 @@ class TestTelemetryInstruments:
         config.otel_endpoint = "localhost:4317"
         config.host_name = "test-host"
 
-        tm = TelemetryManager(config, exporter=mock_exporter)
+        TelemetryManager(config, exporter=mock_exporter)
 
         # cpu_usage and memory_usage should be created via create_gauge, not create_histogram
         gauge_names = [
@@ -223,31 +221,23 @@ class TestTelemetryInstruments:
         config.otel_endpoint = "localhost:4317"
         config.host_name = "test-host"
 
-        tm = TelemetryManager(config, exporter=mock_exporter)
+        TelemetryManager(config, exporter=mock_exporter)
 
         # Should use create_observable_gauge for running counters
         obs_gauge_names = [
             call.kwargs.get("name", call.args[0] if call.args else None)
             for call in mock_meter.create_observable_gauge.call_args_list
         ]
-        assert "ai.app.running" in obs_gauge_names, (
-            "ai.app.running must be an ObservableGauge"
-        )
-        assert "ai.cli.running" in obs_gauge_names, (
-            "ai.cli.running must be an ObservableGauge"
-        )
+        assert "ai.app.running" in obs_gauge_names, "ai.app.running must be an ObservableGauge"
+        assert "ai.cli.running" in obs_gauge_names, "ai.cli.running must be an ObservableGauge"
 
         # Should NOT use create_up_down_counter for these
         udc_names = [
             call.kwargs.get("name", call.args[0] if call.args else None)
             for call in mock_meter.create_up_down_counter.call_args_list
         ]
-        assert "ai.app.running" not in udc_names, (
-            "ai.app.running should NOT be an UpDownCounter"
-        )
-        assert "ai.cli.running" not in udc_names, (
-            "ai.cli.running should NOT be an UpDownCounter"
-        )
+        assert "ai.app.running" not in udc_names, "ai.app.running should NOT be an UpDownCounter"
+        assert "ai.cli.running" not in udc_names, "ai.cli.running should NOT be an UpDownCounter"
 
     @patch.dict("os.environ", {"OTEL_EXPORTER_OTLP_PROTOCOL": "http/json"})
     def test_telemetry_http_exporter_selection(self):
@@ -261,11 +251,13 @@ class TestTelemetryInstruments:
         mock_http_exporter = MagicMock()
         with patch.dict(
             "sys.modules",
-            {"opentelemetry.exporter.otlp.proto.http.metric_exporter": MagicMock(
-                OTLPMetricExporter=mock_http_exporter
-            )}
+            {
+                "opentelemetry.exporter.otlp.proto.http.metric_exporter": MagicMock(
+                    OTLPMetricExporter=mock_http_exporter
+                )
+            },
         ):
-            exporter = _create_exporter(config)
+            _create_exporter(config)
 
             mock_http_exporter.assert_called_once_with(
                 endpoint="http://localhost:4318",

@@ -252,7 +252,10 @@ class BrowserHistoryParser:
 
             logger.debug(
                 "Browser history: {} — {} visits, {:.0f}s estimated duration ({})",
-                domain, len(visits_list), total_duration, browser_name,
+                domain,
+                len(visits_list),
+                total_duration,
+                browser_name,
             )
 
     def _estimate_session_duration(self, visits: list[dict], browser: str) -> float:

@@ -32,10 +32,11 @@ def test_wsl_detector_emits_transition_deltas_only_once_per_state(mocker) -> Non
 
     mocker.patch.object(detector, "_get_running_distros", return_value=["Ubuntu"])
 
+    hdr = "USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND\n"
     scans = [
-        "USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND\nq 1 0.0 0.1 1 1 ? S 00:00 00:00 claude\n",
-        "USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND\nq 1 0.0 0.1 1 1 ? S 00:00 00:00 claude\n",
-        "USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND\nq 1 0.0 0.1 1 1 ? S 00:00 00:00 bash\n",
+        hdr + "q 1 0.0 0.1 1 1 ? S 00:00 00:00 claude\n",
+        hdr + "q 1 0.0 0.1 1 1 ? S 00:00 00:00 claude\n",
+        hdr + "q 1 0.0 0.1 1 1 ? S 00:00 00:00 bash\n",
     ]
 
     def _fake_run(*_args, **_kwargs):

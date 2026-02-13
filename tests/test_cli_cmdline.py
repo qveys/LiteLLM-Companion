@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.cli import CLIDetector
 
@@ -72,9 +70,7 @@ class TestCLIDetectorCmdlineMatching:
         detector = CLIDetector(config, telemetry)
 
         # Simulates: node /usr/local/bin/gemini --args
-        procs = [
-            _fake_process(200, "node", ["node", "/usr/local/bin/gemini", "--interactive"])
-        ]
+        procs = [_fake_process(200, "node", ["node", "/usr/local/bin/gemini", "--interactive"])]
         with patch("psutil.process_iter", return_value=procs):
             detector.scan()
 

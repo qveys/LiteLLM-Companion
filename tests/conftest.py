@@ -1,10 +1,10 @@
 """Shared test fixtures for ai_cost_observer tests."""
+
 import logging
 import tempfile
-
-import pytest
 from unittest.mock import Mock, patch
 
+import pytest
 from loguru import logger
 
 from ai_cost_observer.config import AppConfig

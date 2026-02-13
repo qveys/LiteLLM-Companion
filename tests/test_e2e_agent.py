@@ -2,7 +2,6 @@
 End-to-end style test that runs the agent's main loop in-process.
 """
 
-import os
 import time
 from pathlib import Path
 from threading import Event, Thread
@@ -69,9 +68,7 @@ def mock_server():
     yield server
 
 
-def test_e2e_main_loop_sends_metrics(
-    tmp_path: Path, mocker, mock_server: OTLPMockServer
-):
+def test_e2e_main_loop_sends_metrics(tmp_path: Path, mocker, mock_server: OTLPMockServer):
     """
     Runs the main loop in-process and verifies that metrics are sent.
     This test focuses on the shell history detector to confirm the E2E pipeline.
@@ -94,9 +91,7 @@ def test_e2e_main_loop_sends_metrics(
     config.scan_interval_seconds = 0.5
 
     # Inject the HTTP exporter directly to avoid gRPC/protocol issues
-    exporter = OTLPMetricExporter(
-        endpoint=f"http://127.0.0.1:{mock_server.port}/v1/metrics"
-    )
+    exporter = OTLPMetricExporter(endpoint=f"http://127.0.0.1:{mock_server.port}/v1/metrics")
     telemetry = TelemetryManager(config, exporter=exporter)
 
     detectors = {

@@ -165,7 +165,8 @@ class DesktopDetector:
             if is_running and not state.was_running:
                 logger.info(
                     "Detected AI app: {} (PIDs: {})",
-                    app_name, found.get(app_name, set()),
+                    app_name,
+                    found.get(app_name, set()),
                 )
             elif not is_running and state.was_running:
                 logger.info("AI app stopped: {}", app_name)

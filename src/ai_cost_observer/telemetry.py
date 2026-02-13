@@ -22,8 +22,9 @@ from ai_cost_observer.config import AppConfig
 
 def _create_exporter(config: AppConfig) -> MetricExporter:
     """Create an OTLP metric exporter based on config and environment."""
-    protocol = os.environ.get("OTEL_EXPORTER_OTLP_METRICS_PROTOCOL",
-                            os.environ.get("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"))
+    protocol = os.environ.get(
+        "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL", os.environ.get("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
+    )
 
     headers = {}
     if config.otel_bearer_token:
@@ -32,15 +33,14 @@ def _create_exporter(config: AppConfig) -> MetricExporter:
     if protocol == "http/json":
         logger.debug("Using OTLP/HTTP JSON exporter.")
         from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+
         return OTLPMetricExporter(endpoint=config.otel_endpoint, headers=headers)
 
     logger.debug("Using OTLP/gRPC exporter (default).")
     from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
     grpc_endpoint = (
-        config.otel_endpoint
-        .replace("http://", "")
-        .replace("https://", "")
-        .split("/")[0]
+        config.otel_endpoint.replace("http://", "").replace("https://", "").split("/")[0]
     )
     return OTLPMetricExporter(
         endpoint=grpc_endpoint,
@@ -54,13 +54,15 @@ class TelemetryManager:
 
     def __init__(self, config: AppConfig, exporter: Optional[MetricExporter] = None) -> None:
         self.config = config
-        self.resource = Resource.create({
-            "service.name": "ai-cost-observer",
-            "service.version": __version__,
-            "host.name": config.host_name,
-            "os.type": platform.system().lower(),
-            "deployment.environment": "personal",
-        })
+        self.resource = Resource.create(
+            {
+                "service.name": "ai-cost-observer",
+                "service.version": __version__,
+                "host.name": config.host_name,
+                "os.type": platform.system().lower(),
+                "deployment.environment": "personal",
+            }
+        )
 
         self.exporter = exporter if exporter is not None else _create_exporter(config)
 
@@ -86,25 +88,32 @@ class TelemetryManager:
             callbacks=[self._observe_app_running],
         )
         self.app_active_duration = self.meter.create_counter(
-            name="ai.app.active.duration", unit="s",
+            name="ai.app.active.duration",
+            unit="s",
         )
         self.app_cpu_usage = self.meter.create_gauge(
-            name="ai.app.cpu.usage", unit="%",
+            name="ai.app.cpu.usage",
+            unit="%",
         )
         self.app_memory_usage = self.meter.create_gauge(
-            name="ai.app.memory.usage", unit="MB",
+            name="ai.app.memory.usage",
+            unit="MB",
         )
         self.app_estimated_cost = self.meter.create_counter(
-            name="ai.app.estimated.cost", unit="USD",
+            name="ai.app.estimated.cost",
+            unit="USD",
         )
         self.browser_domain_active_duration = self.meter.create_counter(
-            name="ai.browser.domain.active.duration", unit="s",
+            name="ai.browser.domain.active.duration",
+            unit="s",
         )
         self.browser_domain_visit_count = self.meter.create_counter(
-            name="ai.browser.domain.visit.count", unit="1",
+            name="ai.browser.domain.visit.count",
+            unit="1",
         )
         self.browser_domain_estimated_cost = self.meter.create_counter(
-            name="ai.browser.domain.estimated.cost", unit="USD",
+            name="ai.browser.domain.estimated.cost",
+            unit="USD",
         )
         self.cli_running = self.meter.create_observable_gauge(
             name="ai.cli.running",
@@ -112,25 +121,32 @@ class TelemetryManager:
             callbacks=[self._observe_cli_running],
         )
         self.cli_active_duration = self.meter.create_counter(
-            name="ai.cli.active.duration", unit="s",
+            name="ai.cli.active.duration",
+            unit="s",
         )
         self.cli_estimated_cost = self.meter.create_counter(
-            name="ai.cli.estimated.cost", unit="USD",
+            name="ai.cli.estimated.cost",
+            unit="USD",
         )
         self.cli_command_count = self.meter.create_counter(
-            name="ai.cli.command.count", unit="1",
+            name="ai.cli.command.count",
+            unit="1",
         )
         self.tokens_input_total = self.meter.create_counter(
-            name="ai.tokens.input", unit="1",
+            name="ai.tokens.input",
+            unit="1",
         )
         self.tokens_output_total = self.meter.create_counter(
-            name="ai.tokens.output", unit="1",
+            name="ai.tokens.output",
+            unit="1",
         )
         self.tokens_cost_usd_total = self.meter.create_counter(
-            name="ai.tokens.cost_usd", unit="1",
+            name="ai.tokens.cost_usd",
+            unit="1",
         )
         self.prompt_count_total = self.meter.create_counter(
-            name="ai.prompt.count", unit="1",
+            name="ai.prompt.count",
+            unit="1",
         )
 
         logger.debug("TelemetryManager initialized.")

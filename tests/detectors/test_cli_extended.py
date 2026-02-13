@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock
 
 import psutil
-import pytest
 
 from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.cli import CLIDetector
@@ -144,9 +143,7 @@ class TestCLIAccessDenied:
         detector = CLIDetector(config, telemetry)
 
         vanishing_proc = MagicMock()
-        vanishing_proc.info.__getitem__ = MagicMock(
-            side_effect=psutil.NoSuchProcess(888)
-        )
+        vanishing_proc.info.__getitem__ = MagicMock(side_effect=psutil.NoSuchProcess(888))
 
         mocker.patch("psutil.process_iter", return_value=[vanishing_proc])
 

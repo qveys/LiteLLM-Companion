@@ -1,7 +1,6 @@
 """Tests for Bug H2: _free_port() removal — no arbitrary process killing."""
 
 import importlib
-import socket
 
 from werkzeug.serving import BaseWSGIServer
 
@@ -39,6 +38,4 @@ def test_run_function_does_not_reference_free_port():
     import ai_cost_observer.main as main_mod
 
     source = inspect.getsource(main_mod.run)
-    assert "_free_port" not in source, (
-        "run() should not call _free_port — the function was removed"
-    )
+    assert "_free_port" not in source, "run() should not call _free_port — the function was removed"

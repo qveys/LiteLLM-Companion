@@ -57,7 +57,13 @@ TOKEN_LABELS = {"tool_name", "model_name"}
 PROMPT_LABELS = {"tool_name", "source"}
 
 # Resource attributes added by OTel SDK (on every metric)
-RESOURCE_LABELS = {"host_name", "service_name", "service_version", "os_type", "deployment_environment"}
+RESOURCE_LABELS = {
+    "host_name",
+    "service_name",
+    "service_version",
+    "os_type",
+    "deployment_environment",
+}
 
 # All emitted labels (union)
 ALL_EMITTED_LABELS = (
@@ -94,6 +100,7 @@ METRIC_LABEL_MAP = {
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def load_dashboard(name: str) -> dict:
     """Load and parse a dashboard JSON file."""
@@ -146,11 +153,11 @@ def extract_labels_from_exprs(exprs: list[str]) -> set[str]:
         # {label="value"} or {label=~"value"}
         labels.update(re.findall(r'(\w+)\s*[!=~]+\s*"', expr))
         # sum by (label)
-        labels.update(re.findall(r'(?:by|without)\s*\(([^)]+)\)', expr))
+        labels.update(re.findall(r"(?:by|without)\s*\(([^)]+)\)", expr))
         # {{label}} in legendFormat
-        labels.update(re.findall(r'\{\{(\w+)\}\}', expr))
+        labels.update(re.findall(r"\{\{(\w+)\}\}", expr))
         # label_values(metric, label)
-        labels.update(re.findall(r'label_values\(\w+,\s*(\w+)\)', expr))
+        labels.update(re.findall(r"label_values\(\w+,\s*(\w+)\)", expr))
         # label_replace(..., "dst_label", "replacement", "src_label", "regex")
         # Pattern: "dst_label", "replacement", "src_label", "regex"
         # Handle nested calls by matching the 4-string arg pattern directly
@@ -163,14 +170,32 @@ def extract_labels_from_exprs(exprs: list[str]) -> set[str]:
     for label in labels:
         for part in label.split(","):
             part = part.strip()
-            if part and re.match(r'^\w+$', part):
+            if part and re.match(r"^\w+$", part):
                 expanded.add(part)
 
     # Remove known PromQL functions/keywords that aren't labels
     non_labels = {
-        "sum", "increase", "rate", "vector", "label_replace", "label_values",
-        "or", "and", "unless", "on", "ignoring", "group_left", "group_right",
-        "by", "without", "avg", "min", "max", "count", "topk", "bottomk",
+        "sum",
+        "increase",
+        "rate",
+        "vector",
+        "label_replace",
+        "label_values",
+        "or",
+        "and",
+        "unless",
+        "on",
+        "ignoring",
+        "group_left",
+        "group_right",
+        "by",
+        "without",
+        "avg",
+        "min",
+        "max",
+        "count",
+        "topk",
+        "bottomk",
         "__name__",
     }
     return expanded - non_labels
@@ -182,12 +207,12 @@ def extract_legend_labels(dashboard: dict) -> set[str]:
     for panel in dashboard.get("panels", []):
         for target in panel.get("targets", []):
             legend = target.get("legendFormat", "")
-            labels.update(re.findall(r'\{\{(\w+)\}\}', legend))
+            labels.update(re.findall(r"\{\{(\w+)\}\}", legend))
         if "panels" in panel:
             for sub in panel["panels"]:
                 for target in sub.get("targets", []):
                     legend = target.get("legendFormat", "")
-                    labels.update(re.findall(r'\{\{(\w+)\}\}', legend))
+                    labels.update(re.findall(r"\{\{(\w+)\}\}", legend))
     return labels
 
 
@@ -196,7 +221,7 @@ def extract_metric_names_from_exprs(exprs: list[str]) -> set[str]:
     names: set[str] = set()
     for expr in exprs:
         # Match metric names: ai_xxx_yyy{...} or ai_xxx_yyy[...]
-        names.update(re.findall(r'\b(ai_\w+)\b', expr))
+        names.update(re.findall(r"\b(ai_\w+)\b", expr))
     return names
 
 
@@ -206,7 +231,7 @@ def get_dashboard_links(dashboard: dict) -> set[str]:
     for link in dashboard.get("links", []):
         url = link.get("url", "")
         # URL pattern: /d/<uid>
-        match = re.search(r'/d/([a-zA-Z0-9_-]+)', url)
+        match = re.search(r"/d/([a-zA-Z0-9_-]+)", url)
         if match:
             uids.add(match.group(1))
     return uids
@@ -311,9 +336,11 @@ class TestQueriedLabelsExistInCode:
         or known resource/infrastructure labels."""
         # Labels that come from OTel resource or Prometheus infra, not from code
         infra_labels = RESOURCE_LABELS | {
-            "instance", "job",
+            "instance",
+            "job",
             # Labels created by label_replace in overview dashboard
-            "tool_name", "tool_category",
+            "tool_name",
+            "tool_category",
         }
         allowed = ALL_EMITTED_LABELS | infra_labels
 
@@ -328,7 +355,7 @@ class TestQueriedLabelsExistInCode:
                 phantom[name] = unknown
 
         assert not phantom, (
-            f"Phantom labels found in dashboards (referenced but never emitted by code):\n"
+            "Phantom labels found in dashboards (referenced but never emitted by code):\n"
             + "\n".join(f"  {db}: {sorted(labels)}" for db, labels in phantom.items())
         )
 
@@ -344,10 +371,10 @@ class TestQueriedLabelsExistInCode:
 
         for expr in exprs:
             # Find metric{label=...} patterns
-            for match in re.finditer(r'(ai_\w+)\{([^}]+)\}', expr):
+            for match in re.finditer(r"(ai_\w+)\{([^}]+)\}", expr):
                 metric_prefix = match.group(1)
                 label_block = match.group(2)
-                queried_labels = set(re.findall(r'(\w+)\s*[!=~]+', label_block))
+                queried_labels = set(re.findall(r"(\w+)\s*[!=~]+", label_block))
 
                 # Find the matching metric in our map
                 expected = None
@@ -365,8 +392,8 @@ class TestQueriedLabelsExistInCode:
                             f"which are not emitted for this metric (expected: {sorted(expected)})"
                         )
 
-        assert not issues, (
-            f"Label mismatches in {dashboard_name}:\n" + "\n".join(f"  - {i}" for i in issues)
+        assert not issues, f"Label mismatches in {dashboard_name}:\n" + "\n".join(
+            f"  - {i}" for i in issues
         )
 
 
@@ -390,9 +417,8 @@ class TestDashboardLinksBidirectional:
                             f"does NOT link back to '{src_uid}'"
                         )
 
-        assert not missing, (
-            "Non-bidirectional dashboard links found:\n"
-            + "\n".join(f"  - {m}" for m in missing)
+        assert not missing, "Non-bidirectional dashboard links found:\n" + "\n".join(
+            f"  - {m}" for m in missing
         )
 
 
@@ -475,9 +501,8 @@ class TestNoDuplicatePanelIds:
 
         _walk(db.get("panels", []))
 
-        assert not duplicates, (
-            f"Duplicate panel IDs in '{dashboard_name}':\n"
-            + "\n".join(f"  - {d}" for d in duplicates)
+        assert not duplicates, f"Duplicate panel IDs in '{dashboard_name}':\n" + "\n".join(
+            f"  - {d}" for d in duplicates
         )
 
 

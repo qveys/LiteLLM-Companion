@@ -1,9 +1,13 @@
 """Tests for the desktop app detector."""
-import pytest
-from unittest.mock import Mock, MagicMock
+
 from pathlib import Path
+from unittest.mock import MagicMock, Mock
+
+import pytest
+
 from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.desktop import DesktopDetector
+
 
 @pytest.fixture
 def mock_config(tmp_path: Path) -> AppConfig:
@@ -21,6 +25,7 @@ def mock_config(tmp_path: Path) -> AppConfig:
         }
     ]
     return config
+
 
 @pytest.fixture
 def mock_telemetry() -> Mock:
@@ -40,14 +45,16 @@ def mock_telemetry() -> Mock:
     telemetry.app_memory_usage.set = Mock()
     return telemetry
 
+
 def create_mock_process(name: str, pid: int):
     """Factory for creating mock psutil.Process objects."""
     proc = MagicMock()
     proc.info = {"name": name, "pid": pid}
     proc.cpu_percent.return_value = 10.0
     # psutil memory_info returns a named tuple, mock that
-    proc.memory_info.return_value = Mock(rss=200 * 1024 * 1024) # 200 MB
+    proc.memory_info.return_value = Mock(rss=200 * 1024 * 1024)  # 200 MB
     return proc
+
 
 def test_desktop_detector_state_changes(mock_config: AppConfig, mock_telemetry: Mock, mocker):
     """Test the stateful tracking of application start and stop.
