@@ -46,16 +46,16 @@ def chrome_history_db(tmp_path: Path) -> Path:
     
     # Session 1: two visits close together
     cursor.execute("INSERT INTO urls (id, url, title) VALUES (1, 'https://test-ai.com/chat', 'Test Chat')")
-    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (1, {now_chrome - 600 * 1_000_000}, 120 * 1_000_000)") # 10 mins ago, 120s duration
-    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (1, {now_chrome - 300 * 1_000_000}, 180 * 1_000_000)") # 5 mins ago, 180s duration
-    
+    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (1, {now_chrome - 600_000_000}, {120_000_000})")
+    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (1, {now_chrome - 300_000_000}, {180_000_000})")
+
     # Session 2: one visit much later (or earlier, doesn't matter for test)
     cursor.execute("INSERT INTO urls (id, url, title) VALUES (2, 'https://test-ai.com/chat/2', 'Test Chat 2')")
-    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (2, {now_chrome - 3600 * 1_000_000}, 60 * 1_000_000)") # 1 hour ago, 60s duration
+    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (2, {now_chrome - 3_600_000_000}, {60_000_000})")
 
     # Non-AI visit
     cursor.execute("INSERT INTO urls (id, url, title) VALUES (3, 'https://example.com', 'Example')")
-    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (3, {now_chrome - 100 * 1_000_000}, 30 * 1_000_000)")
+    cursor.execute(f"INSERT INTO visits (url, visit_time, visit_duration) VALUES (3, {now_chrome - 100_000_000}, {30_000_000})")
 
     conn.commit()
     conn.close()

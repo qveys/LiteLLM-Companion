@@ -36,7 +36,12 @@ def _create_exporter(config: AppConfig) -> MetricExporter:
 
     logger.debug("Using OTLP/gRPC exporter (default).")
     from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-    grpc_endpoint = config.otel_endpoint.replace("http://", "").replace("https://", "").split("/")[0]
+    grpc_endpoint = (
+        config.otel_endpoint
+        .replace("http://", "")
+        .replace("https://", "")
+        .split("/")[0]
+    )
     return OTLPMetricExporter(
         endpoint=grpc_endpoint,
         headers=tuple(headers.items()),

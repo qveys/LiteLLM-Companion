@@ -1,10 +1,9 @@
 """Shared test fixtures for ai_cost_observer tests."""
 import logging
-import os
 import tempfile
 
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, patch
 
 from loguru import logger
 
@@ -29,6 +28,20 @@ def caplog_loguru(caplog):
     with caplog.at_level(logging.DEBUG):
         yield
     logger.remove(handler_id)
+
+
+@pytest.fixture(autouse=True)
+def _normalize_os_key():
+    """Normalize _OS_KEY to 'macos' on all platforms.
+
+    Test fixtures define process_names with 'macos' keys. Without this,
+    tests fail on Linux CI where _OS_KEY would be 'linux'.
+    """
+    with (
+        patch("ai_cost_observer.detectors.desktop._OS_KEY", "macos"),
+        patch("ai_cost_observer.detectors.cli._OS_KEY", "macos"),
+    ):
+        yield
 
 
 @pytest.fixture
