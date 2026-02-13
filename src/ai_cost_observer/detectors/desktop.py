@@ -13,7 +13,8 @@ from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.active_window import get_foreground_app
 from ai_cost_observer.telemetry import TelemetryManager
 
-_OS_KEY = "macos" if platform.system() == "Darwin" else "windows"
+_OS = platform.system()
+_OS_KEY = "macos" if _OS == "Darwin" else ("linux" if _OS == "Linux" else "windows")
 
 
 @dataclass
@@ -51,6 +52,13 @@ class DesktopDetector:
             for pattern in app.get("cmdline_patterns", []):
                 self._cmdline_patterns[pattern.lower()] = app
 
+        # Build exe path pattern → app config lookup (Tier 2 matching)
+        # Use list of tuples to avoid key collisions if multiple apps share a pattern.
+        self._exe_patterns: list[tuple[str, dict]] = []
+        for app in config.ai_apps:
+            for pattern in app.get("exe_path_patterns", []):
+                self._exe_patterns.append((pattern.lower(), app))
+
     def scan(self) -> None:
         """Run one scan cycle: detect apps, update metrics."""
         now = time.monotonic()
@@ -66,7 +74,7 @@ class DesktopDetector:
         cpu_by_app: dict[str, float] = {}
         mem_by_app: dict[str, float] = {}
 
-        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+        for proc in psutil.process_iter(["pid", "name", "exe", "cmdline"]):
             try:
                 proc_name = proc.info["name"]
                 if not proc_name:
@@ -75,11 +83,21 @@ class DesktopDetector:
 
                 app_cfg = None
 
-                # Fast path: match by process name
+                # Tier 1: match by process name
                 if proc_name_lower in self._process_map:
                     app_cfg = self._process_map[proc_name_lower]
 
-                # Fallback: match by cmdline for interpreted scripts
+                # Tier 2: match by exe path
+                if app_cfg is None and self._exe_patterns:
+                    exe_path = proc.info.get("exe") or ""
+                    if exe_path and not exe_path.startswith("/System/Library/"):
+                        exe_lower = exe_path.lower()
+                        for pattern, candidate in self._exe_patterns:
+                            if pattern in exe_lower:
+                                app_cfg = candidate
+                                break
+
+                # Tier 3: match by cmdline for interpreted scripts
                 if app_cfg is None and self._cmdline_patterns:
                     cmdline = proc.info.get("cmdline") or []
                     if cmdline:

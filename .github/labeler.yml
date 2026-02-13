@@ -1,0 +1,43 @@
+"🧩 Area: Detector":
+  - changed-files:
+    - any-glob-to-any-file: "src/**/detectors/**"
+
+"⚙️ Area: Config":
+  - changed-files:
+    - any-glob-to-any-file: "src/**/data/**"
+
+"🧪 Area: Tests":
+  - changed-files:
+    - any-glob-to-any-file: "tests/**"
+
+"🔧 Area: CI/CD":
+  - changed-files:
+    - any-glob-to-any-file:
+      - ".github/**"
+
+"🎯 Detector: Desktop":
+  - changed-files:
+    - any-glob-to-any-file: "src/**/detectors/desktop*.py"
+
+"🎯 Detector: CLI":
+  - changed-files:
+    - any-glob-to-any-file: "src/**/detectors/cli*.py"
+
+"🎯 Detector: Browser History":
+  - changed-files:
+    - any-glob-to-any-file: "src/**/detectors/browser_history*.py"
+
+"📝 Area: Docs":
+  - changed-files:
+    - any-glob-to-any-file: "docs/**"
+
+"🐍 Area: Python":
+  - changed-files:
+    - any-glob-to-any-file: "src/**/*.py"
+
+"🐳 Area: Docker":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "infra/**"
+      - "docker-compose*.yml"
+      - "Dockerfile*"

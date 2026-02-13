@@ -6,7 +6,7 @@ ai_apps:
   # Chat / Assistant
   - name: ChatGPT
     process_names:
-      macos: ["ChatGPT"]
+      macos: ["ChatGPT", "ChatGPTHelper"]
       windows: ["ChatGPT.exe"]
     category: chat
     cost_per_hour: 0.50
@@ -15,6 +15,7 @@ ai_apps:
     process_names:
       macos: ["Claude"]
       windows: ["Claude.exe"]
+    exe_path_patterns: ["Claude.app"]
     category: chat
     cost_per_hour: 0.60
 
@@ -49,11 +50,11 @@ ai_apps:
     process_names:
       macos: ["idea", "pycharm", "webstorm", "goland", "clion", "rider"]
       windows: ["idea64.exe", "pycharm64.exe", "webstorm64.exe", "goland64.exe"]
+    # copilot-language-server removed from process_names — it's shared with
+    # VS Code Copilot. Use exe_path_patterns to disambiguate JetBrains installs.
+    exe_path_patterns: ["jetbrains", "/idea/", "/pycharm/", "/webstorm/", "/goland/", "/clion/", "/rider/"]
     category: code
     cost_per_hour: 0.40
-    # These process names match the IDE itself, not the AI plugin.
-    # Detection is a heuristic: the IDE is running, but AI usage
-    # is only active when the JetBrains AI Assistant plugin is installed.
     requires_plugin: true
     note: "Detects JetBrains IDE process; assumes AI Assistant plugin is active"
 
@@ -89,8 +90,9 @@ ai_apps:
 
   - name: Perplexity
     process_names:
-      macos: ["Perplexity"]
+      macos: ["Perplexity", "Comet", "Comet Helper (Renderer)"]
       windows: ["Perplexity.exe"]
+    exe_path_patterns: ["Comet.app"]
     category: search
     cost_per_hour: 0.40
 
@@ -106,6 +108,28 @@ ai_apps:
       windows: ["Pieces OS.exe"]
     category: code
     cost_per_hour: 0.20
+
+  - name: superwhisper
+    process_names:
+      macos: ["superwhisper"]
+    category: audio
+    cost_per_hour: 0.20
+
+  - name: Codex Desktop
+    process_names:
+      macos: ["Codex"]
+      windows: ["Codex.exe"]
+    exe_path_patterns: ["Codex.app"]
+    category: code
+    cost_per_hour: 1.00
+
+  - name: Zed
+    process_names:
+      macos: ["zed"]
+      windows: ["zed.exe"]
+    category: code
+    cost_per_hour: 0.30
+    note: "Editor with built-in AI assistant"
 
 ai_domains:
   # OpenAI
@@ -241,15 +265,18 @@ ai_cli_tools:
       linux: ["claude"]
       windows: ["claude.exe"]
     command_patterns: ["claude"]
+    exe_path_patterns: ["/claude/versions/"]
+    cmdline_patterns: ["claude"]
     category: code
     cost_per_hour: 1.00
 
   - name: github-copilot-cli
     process_names:
-      macos: ["gh"]
-      linux: ["gh"]
-      windows: ["gh.exe"]
+      macos: []
+      linux: []
+      windows: []
     command_patterns: ["gh copilot"]
+    cmdline_patterns: ["gh copilot", "gh.exe copilot"]
     category: code
     cost_per_hour: 0.40
 
@@ -301,11 +328,12 @@ ai_cli_tools:
 
   - name: codex-cli
     process_names:
-      macos: ["codex"]
-      linux: ["codex"]
+      macos: ["codex", "codex-aarch64-apple-darwin"]
+      linux: ["codex", "codex-x86_64-unknown-linux-gnu"]
       windows: ["codex.exe"]
     command_patterns: ["codex"]
     cmdline_patterns: ["/codex", "codex "]
+    exe_path_patterns: ["/.codex/"]
     category: code
     cost_per_hour: 1.00
 
@@ -316,6 +344,7 @@ ai_cli_tools:
       windows: ["vibe.exe"]
     command_patterns: ["vibe"]
     cmdline_patterns: ["vibe"]
+    exe_path_patterns: ["mistral-vibe"]
     category: code
     cost_per_hour: 0.60
 

@@ -16,7 +16,8 @@ from ai_cost_observer.telemetry import TelemetryManager
 if TYPE_CHECKING:
     from ai_cost_observer.detectors.desktop import DesktopDetector
 
-_OS_KEY = "macos" if platform.system() == "Darwin" else "windows"
+_OS = platform.system()
+_OS_KEY = "macos" if _OS == "Darwin" else ("linux" if _OS == "Linux" else "windows")
 
 
 @dataclass
@@ -56,6 +57,13 @@ class CLIDetector:
             for pattern in tool.get("cmdline_patterns", []):
                 self._cmdline_patterns[pattern.lower()] = tool
 
+        # Build exe path pattern → tool config lookup (Tier 2 matching)
+        # Use list of tuples to avoid key collisions if multiple tools share a pattern.
+        self._exe_patterns: list[tuple[str, dict]] = []
+        for tool in config.ai_cli_tools:
+            for pattern in tool.get("exe_path_patterns", []):
+                self._exe_patterns.append((pattern.lower(), tool))
+
         # Desktop app process names (lowercased) — used as a fallback name-based dedup
         # when no desktop_detector reference is available for PID-based dedup.
         # Case-insensitive to handle tools like Ollama where psutil returns "ollama"
@@ -78,7 +86,7 @@ class CLIDetector:
 
         found: dict[str, set[int]] = {}
 
-        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+        for proc in psutil.process_iter(["pid", "name", "exe", "cmdline"]):
             try:
                 pid = proc.info["pid"]
                 proc_name = proc.info["name"]
@@ -93,7 +101,7 @@ class CLIDetector:
 
                 tool_cfg = None
 
-                # Fast path: match by process name
+                # Tier 1: match by process name
                 if proc_name_lower in self._process_map:
                     # When PID-based dedup is active, it already filtered desktop PIDs
                     # above, so no additional name check is needed.
@@ -102,11 +110,28 @@ class CLIDetector:
                     if has_pid_dedup or proc_name_lower not in self._desktop_proc_lower:
                         tool_cfg = self._process_map[proc_name_lower]
 
-                # Fallback: match by cmdline for interpreted scripts (node, python)
-                if tool_cfg is None and self._cmdline_patterns:
+                # Tier 2: match by exe path
+                # Apply the same name-based dedup guard as Tier 1 to prevent
+                # desktop apps from being claimed as CLI tools via exe path.
+                if tool_cfg is None and self._exe_patterns and (
+                    has_pid_dedup or proc_name_lower not in self._desktop_proc_lower
+                ):
+                    exe_path = proc.info.get("exe") or ""
+                    if exe_path and not exe_path.startswith("/System/Library/"):
+                        exe_lower = exe_path.lower()
+                        for pattern, candidate in self._exe_patterns:
+                            if pattern in exe_lower:
+                                tool_cfg = candidate
+                                break
+
+                # Tier 3: match by cmdline for interpreted scripts (node, python)
+                # Same dedup guard as Tier 1/2.
+                if tool_cfg is None and self._cmdline_patterns and (
+                    has_pid_dedup or proc_name_lower not in self._desktop_proc_lower
+                ):
                     cmdline = proc.info.get("cmdline") or []
                     if cmdline:
-                        cmdline_str = " ".join(cmdline).lower()
+                        cmdline_str = " ".join(cmdline[:3]).lower()
                         for pattern, candidate in self._cmdline_patterns.items():
                             if pattern in cmdline_str:
                                 tool_cfg = candidate
