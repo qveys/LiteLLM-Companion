@@ -11,6 +11,7 @@ from flask import Flask, jsonify, request
 from loguru import logger
 
 from ai_cost_observer.config import AppConfig
+from ai_cost_observer.detectors.token_tracker import estimate_cost
 from ai_cost_observer.telemetry import TelemetryManager
 
 # Token tracker reference (set after initialization in main.py)
@@ -193,12 +194,15 @@ def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
                         response_text=response_text,
                     )
                 else:
-                    # No token tracker — just record the OTel metrics directly
+                    # No token tracker — record OTel metrics directly including cost
                     labels = {"tool.name": tool, "model.name": model}
                     if input_tokens > 0:
                         telemetry.tokens_input_total.add(input_tokens, labels)
                     if output_tokens > 0:
                         telemetry.tokens_output_total.add(output_tokens, labels)
+                    cost = estimate_cost(model, input_tokens, output_tokens)
+                    if cost > 0:
+                        telemetry.tokens_cost_usd_total.add(cost, labels)
                     telemetry.prompt_count_total.add(
                         1, {"tool.name": tool, "source": "browser"}
                     )
