@@ -113,8 +113,10 @@ class CLIDetector:
                 # Tier 2: match by exe path
                 # Apply the same name-based dedup guard as Tier 1 to prevent
                 # desktop apps from being claimed as CLI tools via exe path.
-                if tool_cfg is None and self._exe_patterns and (
-                    has_pid_dedup or proc_name_lower not in self._desktop_proc_lower
+                if (
+                    tool_cfg is None
+                    and self._exe_patterns
+                    and (has_pid_dedup or proc_name_lower not in self._desktop_proc_lower)
                 ):
                     exe_path = proc.info.get("exe") or ""
                     if exe_path and not exe_path.startswith("/System/Library/"):
@@ -126,8 +128,10 @@ class CLIDetector:
 
                 # Tier 3: match by cmdline for interpreted scripts (node, python)
                 # Same dedup guard as Tier 1/2.
-                if tool_cfg is None and self._cmdline_patterns and (
-                    has_pid_dedup or proc_name_lower not in self._desktop_proc_lower
+                if (
+                    tool_cfg is None
+                    and self._cmdline_patterns
+                    and (has_pid_dedup or proc_name_lower not in self._desktop_proc_lower)
                 ):
                     cmdline = proc.info.get("cmdline") or []
                     if cmdline:
@@ -167,7 +171,8 @@ class CLIDetector:
             if is_running and not state.was_running:
                 logger.info(
                     "Detected AI CLI tool: {} (PIDs: {})",
-                    tool_name, found.get(tool_name),
+                    tool_name,
+                    found.get(tool_name),
                 )
             elif not is_running and state.was_running:
                 logger.info("AI CLI tool stopped: {}", tool_name)

@@ -2,7 +2,9 @@
 
 import os
 from pathlib import Path
+
 from ai_cost_observer.config import load_config
+
 
 def test_config_loading_priority(mocker):
     """
@@ -17,7 +19,9 @@ def test_config_loading_priority(mocker):
         "ai_domains": [{"domain": "builtin.com", "cost_per_hour": 1.0}],
         "ai_cli_tools": [{"name": "builtin-cli", "cost_per_hour": 1.0}],
     }
-    mocker.patch("ai_cost_observer.config._load_builtin_ai_config", return_value=builtin_config_data)
+    mocker.patch(
+        "ai_cost_observer.config._load_builtin_ai_config", return_value=builtin_config_data
+    )
 
     # 2. Mock the return value of the user config loader
     user_config_data = {
@@ -28,9 +32,11 @@ def test_config_loading_priority(mocker):
     }
     # We also mock _default_config_dir to avoid side-effects, though it's not strictly
     # necessary with this approach as _load_user_config is what we care about.
-    mocker.patch("ai_cost_observer.config._default_config_dir", return_value=Path("/tmp/mock_config"))
+    mocker.patch(
+        "ai_cost_observer.config._default_config_dir", return_value=Path("/tmp/mock_config")
+    )
     mocker.patch("ai_cost_observer.config._load_user_config", return_value=user_config_data)
-    
+
     # 3. Mock environment variables
     # Use clear=True to ensure a clean environment for the test
     env_vars = {

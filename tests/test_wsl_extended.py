@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
-
 from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.wsl import WSLDetector
 
@@ -71,9 +69,7 @@ class TestWSLMultipleDistros:
         detector = WSLDetector(config, telemetry)
         detector._enabled = True
 
-        mocker.patch.object(
-            detector, "_get_running_distros", return_value=["Ubuntu", "Debian"]
-        )
+        mocker.patch.object(detector, "_get_running_distros", return_value=["Ubuntu", "Debian"])
 
         ubuntu_output = (
             "USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND\n"
@@ -111,9 +107,7 @@ class TestWSLMultipleDistros:
         detector = WSLDetector(config, telemetry)
         detector._enabled = True
 
-        mocker.patch.object(
-            detector, "_get_running_distros", return_value=["Ubuntu", "Fedora"]
-        )
+        mocker.patch.object(detector, "_get_running_distros", return_value=["Ubuntu", "Fedora"])
 
         ps_output = (
             "USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND\n"
@@ -140,9 +134,7 @@ class TestWSLMultipleDistros:
         detector = WSLDetector(config, telemetry)
         detector._enabled = True
 
-        mocker.patch.object(
-            detector, "_get_running_distros", return_value=["Ubuntu", "Debian"]
-        )
+        mocker.patch.object(detector, "_get_running_distros", return_value=["Ubuntu", "Debian"])
 
         ps_with_claude = (
             "USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND\n"

@@ -1,44 +1,37 @@
 # Roadmap V0 → V1
 
-## V0 (actuel) — Accompli
+## V0 — Accompli
 
 ### Infrastructure
 - [x] Repo GitHub structure (14 commits, 54 labels, 21 issues)
 - [x] Tag v0.1.0
-- [x] CI/CD GitHub Actions (lint + test)
+- [x] CI/CD GitHub Actions (lint + test + coverage)
 - [x] Docker Compose local dev
 
-### Bugs corriges (19/21)
+### Bugs corriges (21/21)
 - [x] 3 critiques (Codex double-counting, Claude offsets, Histogram→Gauge)
 - [x] 7 high (ObservableGauge, free_port, metric_expiration, cache tokens, Chrome events, URL matching, cc pattern)
 - [x] 6 medium (session duration, IDE plugin flag, cli.category, deep merge, WSL linux keys, HTTP limits)
 - [x] 3 low (encryption key, cpu_percent priming, _total suffix)
+- [x] #44 WSL ObservableGauge `.add()` incompatibilite (PR #62)
+- [x] #45 HTTP tokens fallback cost metric manquant (PR #61)
 
 ### Validation
-- [x] 7/9 endpoints valides
-- [x] 336 tests (0 echecs)
-- [x] Rapport de validation detaille
+- [x] 9/9 endpoints valides
+- [x] 4 dashboards Grafana re-valides (16 metriques alignees)
+- [x] 370 tests (0 echecs), coverage 80%
+- [x] ruff lint 0 erreurs
 
----
-
-## V0.x (prochaines etapes immediates)
-
-### P0 — Bugs restants
-- [ ] **#44** WSL detector ObservableGauge `.add()` incompatibilite (High)
-  - Effort: Small — aligner wsl.py sur le pattern snapshot de desktop.py/cli.py
-- [ ] **#45** HTTP tokens fallback cost metric manquant (Medium)
-  - Effort: Small — ajouter `estimate_cost()` dans le path fallback
-
-### P1 — Validation Grafana
-- [ ] Re-valider les 4 dashboards apres les changements de metriques
-  - `ai.app.cpu.usage` et `ai.app.memory.usage` : Histogram → Gauge
-  - `ai.tokens.*_total` → `ai.tokens.*` (Prometheus names inchanges)
-  - `ai.app.running` et `ai.cli.running` : UpDownCounter → ObservableGauge
-- [ ] Mettre a jour les panels si necessaire
-
-### P2 — Tests d'integration
-- [ ] Tests sans mocks pour les endpoints critiques (WSL, HTTP tokens)
-- [ ] Pipeline end-to-end: detector → TelemetryManager → assertions sur les metrics
+### PRs mergees
+| PR | Titre |
+|----|-------|
+| #43 | fix: 10 critical/high bugs |
+| #46 | docs: 9 endpoint validation reports |
+| #47 | feat: CI/CD + 9 medium/low fixes |
+| #48 | fix(detection): exe path matching + 12 detection bugs |
+| #61 | fix(http): fallback cost estimation for token events |
+| #62 | fix(wsl): align WSL detector with ObservableGauge pattern |
+| #64 | chore(lint): ruff auto-fix + coverage config |
 
 ---
 
@@ -51,9 +44,8 @@
 
 ### Qualite
 - [ ] Couverture de tests > 90%
-- [ ] `ruff format` global (fixer les 6 E501 restants)
 - [ ] Tests d'integration avec OTel Collector en conteneur
-- [ ] Monitoring des dashboards en CI (screenshot comparison?)
+- [ ] Pipeline end-to-end: detector → TelemetryManager → assertions sur les metrics
 
 ### Infra
 - [ ] GitHub Release automatique sur tag

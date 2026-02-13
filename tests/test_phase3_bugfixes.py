@@ -7,7 +7,6 @@ regressions.
 from __future__ import annotations
 
 import os
-import time
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
@@ -16,10 +15,10 @@ import pytest
 
 from ai_cost_observer.config import AppConfig, _deep_merge, load_config
 
-
 # ---------------------------------------------------------------------------
 # Bug #11 — Session duration: single-visit sessions get flat 60s, not +300s
 # ---------------------------------------------------------------------------
+
 
 class TestBug11SessionDurationBuffer:
     """Single-visit sessions should not get the 300s multi-visit buffer."""
@@ -82,6 +81,7 @@ class TestBug11SessionDurationBuffer:
 # ---------------------------------------------------------------------------
 # Bug #12 — JetBrains/VS Code requires_plugin flag
 # ---------------------------------------------------------------------------
+
 
 class TestBug12RequiresPluginFlag:
     """IDE entries should have requires_plugin=true in ai_config.yaml."""
@@ -157,6 +157,7 @@ class TestBug12RequiresPluginFlag:
 # Bug #13 — Missing cli.category in shell history
 # ---------------------------------------------------------------------------
 
+
 class TestBug13ShellHistoryCategory:
     """Shell history parser should emit cli.category attribute."""
 
@@ -181,7 +182,8 @@ class TestBug13ShellHistoryCategory:
         parser.scan()
 
         telemetry.cli_command_count.add.assert_called_once_with(
-            1, {"cli.name": "ollama", "cli.category": "local"},
+            1,
+            {"cli.name": "ollama", "cli.category": "local"},
         )
 
     def test_missing_category_defaults_to_unknown(self, tmp_path):
@@ -212,6 +214,7 @@ class TestBug13ShellHistoryCategory:
 # ---------------------------------------------------------------------------
 # Bug #14 — Config deep merge
 # ---------------------------------------------------------------------------
+
 
 class TestBug14DeepMerge:
     """_deep_merge should recursively merge nested dicts."""
@@ -276,6 +279,7 @@ class TestBug14DeepMerge:
 # ---------------------------------------------------------------------------
 # Bug #15 — WSL "linux" key support
 # ---------------------------------------------------------------------------
+
 
 class TestBug15WslLinuxKey:
     """WSL detector should use 'linux' key, falling back to 'macos'."""
@@ -375,6 +379,7 @@ class TestBug15WslLinuxKey:
 # Bug #16 — HTTP receiver rate limiting and payload size
 # ---------------------------------------------------------------------------
 
+
 class TestBug16HttpLimits:
     """HTTP receiver should enforce rate limits and payload size."""
 
@@ -424,7 +429,13 @@ class TestBug16HttpLimits:
 
         client = app.test_client()
         events = [
-            {"type": "api_intercept", "tool": "test", "model": "m", "input_tokens": 1, "output_tokens": 1}
+            {
+                "type": "api_intercept",
+                "tool": "test",
+                "model": "m",
+                "input_tokens": 1,
+                "output_tokens": 1,
+            }
         ] * (MAX_EVENTS_PER_REQUEST + 1)
         resp = client.post("/api/tokens", json={"events": events})
         assert resp.status_code == 400
@@ -433,6 +444,7 @@ class TestBug16HttpLimits:
 # ---------------------------------------------------------------------------
 # Bug #17 — Encryption key from env var
 # ---------------------------------------------------------------------------
+
 
 class TestBug17EncryptionKeyFromEnv:
     """Prompt DB should use PROMPT_DB_KEY env var for encryption when set."""
@@ -472,6 +484,7 @@ class TestBug17EncryptionKeyFromEnv:
 # ---------------------------------------------------------------------------
 # Bug #19 — cpu_percent priming
 # ---------------------------------------------------------------------------
+
 
 class TestBug19CpuPercentPriming:
     """First call to cpu_percent for a new PID should be treated as priming."""
@@ -573,6 +586,7 @@ class TestBug19CpuPercentPriming:
 # ---------------------------------------------------------------------------
 # Bug #20 — _total suffix removed from OTel metric names
 # ---------------------------------------------------------------------------
+
 
 class TestBug20TotalSuffixRemoved:
     """OTel metric names should not contain _total; Prometheus adds it."""

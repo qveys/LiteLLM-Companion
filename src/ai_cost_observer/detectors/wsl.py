@@ -18,10 +18,7 @@ class WSLDetector:
         self.config = config
         self.telemetry = telemetry
         self._enabled = platform.system() == "Windows"
-        self._cli_names = {
-            tool["name"]: tool
-            for tool in config.ai_cli_tools
-        }
+        self._cli_names = {tool["name"]: tool for tool in config.ai_cli_tools}
         self._running_tools: set[tuple[str, str]] = set()
 
     def scan(self) -> None:
@@ -90,9 +87,7 @@ class WSLDetector:
             logger.opt(exception=True).debug("Error scanning WSL distro {}", distro)
             return set()
 
-    def _apply_running_transitions(
-        self, currently_running: set[tuple[str, str]]
-    ) -> None:
+    def _apply_running_transitions(self, currently_running: set[tuple[str, str]]) -> None:
         started = currently_running - self._running_tools
         stopped = self._running_tools - currently_running
 

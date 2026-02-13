@@ -212,7 +212,9 @@ class TokenTracker:
 
         model = entry.get("model", "") or entry.get("message", {}).get("model", "") or "unknown"
         cost = estimate_cost(
-            model, input_tokens, output_tokens,
+            model,
+            input_tokens,
+            output_tokens,
             cache_creation_input_tokens=cache_creation,
             cache_read_input_tokens=cache_read,
         )
@@ -273,9 +275,7 @@ class TokenTracker:
 
         try:
             # Read sessions with token data (schema may vary)
-            cursor = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = {row["name"] for row in cursor}
 
             if "sessions" not in tables:

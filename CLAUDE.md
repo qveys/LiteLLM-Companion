@@ -8,10 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-V0 release (tag v0.1.0). 336 tests passing. 19/21 bugs fixed. CI/CD active.
-See `docs/consolidation-report.md` for full status and `docs/roadmap-v1.md` for next steps.
-
-**Open issues:** #44 (WSL ObservableGauge compat), #45 (HTTP tokens fallback cost).
+V0 complete (tag v0.1.0). 370 tests passing, 80% coverage. 21/21 bugs fixed. 0 open issues. CI/CD active (lint + test + coverage).
+See `docs/consolidation-report.md` for full status and `docs/roadmap-v1.md` for V1 roadmap.
 
 ## Build & Run Commands
 
@@ -27,8 +25,8 @@ python -m ai_cost_observer
 # Install dev deps
 uv sync --extra dev
 
-# Tests (336 tests)
-uv run python -m pytest
+# Tests (370 tests, 80% coverage)
+uv run python -m pytest --cov --cov-report=term-missing
 uv run python -m pytest tests/test_desktop.py           # single test file
 uv run python -m pytest tests/test_desktop.py::test_fn  # single test function
 

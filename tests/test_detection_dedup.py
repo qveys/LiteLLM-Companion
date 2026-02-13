@@ -13,8 +13,6 @@ from __future__ import annotations
 import platform
 from unittest.mock import MagicMock, PropertyMock
 
-import pytest
-
 from ai_cost_observer.config import AppConfig, _load_builtin_ai_config
 from ai_cost_observer.detectors.cli import CLIDetector
 
@@ -24,6 +22,7 @@ _OS_KEY = "macos" if platform.system() == "Darwin" else "windows"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _config_with_real_data() -> AppConfig:
     """Build an AppConfig populated with the real ai_config.yaml data."""
@@ -63,11 +62,13 @@ def _make_desktop_detector(claimed_pids: set[int] | None = None) -> MagicMock:
 # 1-3: Verify removed desktop app entries
 # ---------------------------------------------------------------------------
 
+
 class TestRemovedDesktopApps:
     """Verify that fake desktop apps were removed from ai_config.yaml."""
 
     def test_no_gemini_in_desktop_apps(self):
-        """Gemini is not in ai_apps (no standalone desktop app) but exists as gemini-cli in ai_cli_tools."""
+        """Gemini is not in ai_apps (no standalone desktop app)
+        but exists as gemini-cli in ai_cli_tools."""
         config = _config_with_real_data()
 
         desktop_app_names = [app["name"] for app in config.ai_apps]
@@ -77,7 +78,8 @@ class TestRemovedDesktopApps:
         assert "gemini-cli" in cli_tool_names, "gemini-cli should exist in ai_cli_tools"
 
     def test_no_codex_in_desktop_apps(self):
-        """Codex is not in ai_apps (no standalone desktop app) but exists as codex-cli in ai_cli_tools."""
+        """Codex is not in ai_apps (no standalone desktop app)
+        but exists as codex-cli in ai_cli_tools."""
         config = _config_with_real_data()
 
         desktop_app_names = [app["name"] for app in config.ai_apps]
@@ -99,6 +101,7 @@ class TestRemovedDesktopApps:
 # ---------------------------------------------------------------------------
 # 4-5: CLI detector PID-based dedup with desktop detector
 # ---------------------------------------------------------------------------
+
 
 class TestCLIDesktopDedup:
     """CLI detector skips PIDs already claimed by the desktop detector."""
@@ -206,8 +209,10 @@ class TestCLIDesktopDedup:
 # 6: Tightened codex-cli cmdline_patterns
 # ---------------------------------------------------------------------------
 
+
 class TestCodexCmdlinePatterns:
-    """Codex-cli cmdline_patterns ('/codex', 'codex ') avoid false positives from old broad pattern."""
+    """Codex-cli cmdline_patterns avoid false positives
+    from old broad pattern."""
 
     def test_codex_cmdline_pattern_no_false_positive(self, mocker):
         """A process with 'codecov' or other 'codex'-substring words in cmdline is NOT matched.
@@ -276,7 +281,8 @@ class TestCodexCmdlinePatterns:
         assert "codex-cli" in snapshot
 
     def test_codex_cmdline_patterns_are_tightened(self):
-        """Verify the actual codex-cli patterns in config are ['/codex', 'codex '], not the old broad ['codex']."""
+        """Verify codex-cli patterns are ['/codex', 'codex '],
+        not the old broad ['codex']."""
         config = _config_with_real_data()
         codex_tool = None
         for tool in config.ai_cli_tools:
@@ -295,6 +301,7 @@ class TestCodexCmdlinePatterns:
 # ---------------------------------------------------------------------------
 # 7: No duplicate ChatGPT desktop entries
 # ---------------------------------------------------------------------------
+
 
 class TestNoDuplicateChatGPT:
     """Verify only one ai_apps entry maps to the ChatGPT process name."""

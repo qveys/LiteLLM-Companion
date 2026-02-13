@@ -11,8 +11,8 @@ import pytest
 
 from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.browser_history import (
-    BrowserHistoryParser,
     _CHROME_EPOCH_OFFSET,
+    BrowserHistoryParser,
 )
 
 
@@ -53,13 +53,16 @@ def _create_firefox_db(db_path: Path, visits: list[tuple[str, int]]) -> None:
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT, title TEXT)")
     cursor.execute(
-        "CREATE TABLE moz_historyvisits (id INTEGER PRIMARY KEY, place_id INTEGER, visit_date INTEGER)"
+        "CREATE TABLE moz_historyvisits"
+        " (id INTEGER PRIMARY KEY, place_id INTEGER, visit_date INTEGER)"
     )
 
     for idx, (url, ts_seconds) in enumerate(visits, start=1):
         # Firefox stores timestamps as microseconds since Unix epoch
         ff_ts = int(ts_seconds * 1_000_000)
-        cursor.execute("INSERT INTO moz_places (id, url, title) VALUES (?, ?, ?)", (idx, url, f"Title {idx}"))
+        cursor.execute(
+            "INSERT INTO moz_places (id, url, title) VALUES (?, ?, ?)", (idx, url, f"Title {idx}")
+        )
         cursor.execute(
             "INSERT INTO moz_historyvisits (place_id, visit_date) VALUES (?, ?)", (idx, ff_ts)
         )
@@ -81,7 +84,8 @@ def _create_safari_db(db_path: Path, visits: list[tuple[str, int]]) -> None:
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE history_items (id INTEGER PRIMARY KEY, url TEXT)")
     cursor.execute(
-        "CREATE TABLE history_visits (id INTEGER PRIMARY KEY, history_item INTEGER, title TEXT, visit_time REAL)"
+        "CREATE TABLE history_visits"
+        " (id INTEGER PRIMARY KEY, history_item INTEGER, title TEXT, visit_time REAL)"
     )
 
     for idx, (url, ts_seconds) in enumerate(visits, start=1):
@@ -107,12 +111,15 @@ def _create_chromium_db(db_path: Path, visits: list[tuple[str, int]]) -> None:
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE urls (id INTEGER PRIMARY KEY, url TEXT, title TEXT)")
     cursor.execute(
-        "CREATE TABLE visits (id INTEGER PRIMARY KEY, url INTEGER, visit_time INTEGER, visit_duration INTEGER)"
+        "CREATE TABLE visits"
+        " (id INTEGER PRIMARY KEY, url INTEGER, visit_time INTEGER, visit_duration INTEGER)"
     )
 
     for idx, (url, ts_seconds) in enumerate(visits, start=1):
         chrome_ts = int((ts_seconds + _CHROME_EPOCH_OFFSET) * 1_000_000)
-        cursor.execute("INSERT INTO urls (id, url, title) VALUES (?, ?, ?)", (idx, url, f"Title {idx}"))
+        cursor.execute(
+            "INSERT INTO urls (id, url, title) VALUES (?, ?, ?)", (idx, url, f"Title {idx}")
+        )
         cursor.execute(
             "INSERT INTO visits (url, visit_time, visit_duration) VALUES (?, ?, ?)",
             (idx, chrome_ts, 60_000_000),  # 60s duration
@@ -129,11 +136,14 @@ class TestFirefoxHistoryParsing:
         """Firefox visits to AI domains are correctly parsed and reported."""
         now = time.time()
         db_path = tmp_path / "places.sqlite"
-        _create_firefox_db(db_path, [
-            ("https://chat.openai.com/chat/1", int(now - 600)),
-            ("https://chat.openai.com/chat/2", int(now - 300)),
-            ("https://example.com", int(now - 200)),  # non-AI
-        ])
+        _create_firefox_db(
+            db_path,
+            [
+                ("https://chat.openai.com/chat/1", int(now - 600)),
+                ("https://chat.openai.com/chat/2", int(now - 300)),
+                ("https://example.com", int(now - 200)),  # non-AI
+            ],
+        )
 
         parser = BrowserHistoryParser(browser_config, browser_telemetry)
         parser._default_since = now - 3600
@@ -153,9 +163,12 @@ class TestFirefoxHistoryParsing:
         """Firefox DB with no AI visits produces no metrics."""
         now = time.time()
         db_path = tmp_path / "places.sqlite"
-        _create_firefox_db(db_path, [
-            ("https://example.com", int(now - 600)),
-        ])
+        _create_firefox_db(
+            db_path,
+            [
+                ("https://example.com", int(now - 600)),
+            ],
+        )
 
         parser = BrowserHistoryParser(browser_config, browser_telemetry)
         parser._default_since = now - 3600
@@ -173,10 +186,13 @@ class TestSafariHistoryParsing:
         """Safari visits with Core Data timestamps are correctly parsed."""
         now = time.time()
         db_path = tmp_path / "History.db"
-        _create_safari_db(db_path, [
-            ("https://claude.ai/chat/1", int(now - 500)),
-            ("https://claude.ai/chat/2", int(now - 100)),
-        ])
+        _create_safari_db(
+            db_path,
+            [
+                ("https://claude.ai/chat/1", int(now - 500)),
+                ("https://claude.ai/chat/2", int(now - 100)),
+            ],
+        )
 
         parser = BrowserHistoryParser(browser_config, browser_telemetry)
         parser._default_since = now - 3600
@@ -194,10 +210,13 @@ class TestSafariHistoryParsing:
         now = time.time()
         db_path = tmp_path / "History.db"
         # Two visits 100s apart (same session) => duration = (100 - 0) + 300 = 400
-        _create_safari_db(db_path, [
-            ("https://claude.ai/chat/1", int(now - 200)),
-            ("https://claude.ai/chat/2", int(now - 100)),
-        ])
+        _create_safari_db(
+            db_path,
+            [
+                ("https://claude.ai/chat/1", int(now - 200)),
+                ("https://claude.ai/chat/2", int(now - 100)),
+            ],
+        )
 
         parser = BrowserHistoryParser(browser_config, browser_telemetry)
         parser._default_since = now - 3600
@@ -217,9 +236,12 @@ class TestEdgeBrowserHistory:
         """Edge uses the same Chromium schema and parser as Chrome."""
         now = time.time()
         db_path = tmp_path / "History"
-        _create_chromium_db(db_path, [
-            ("https://chat.openai.com/chat/edge", int(now - 300)),
-        ])
+        _create_chromium_db(
+            db_path,
+            [
+                ("https://chat.openai.com/chat/edge", int(now - 300)),
+            ],
+        )
 
         parser = BrowserHistoryParser(browser_config, browser_telemetry)
         parser._default_since = now - 3600
@@ -241,10 +263,13 @@ class TestBraveBrowserHistory:
         """Brave uses the same Chromium schema and parser."""
         now = time.time()
         db_path = tmp_path / "History"
-        _create_chromium_db(db_path, [
-            ("https://claude.ai/brave/1", int(now - 500)),
-            ("https://claude.ai/brave/2", int(now - 400)),
-        ])
+        _create_chromium_db(
+            db_path,
+            [
+                ("https://claude.ai/brave/1", int(now - 500)),
+                ("https://claude.ai/brave/2", int(now - 400)),
+            ],
+        )
 
         parser = BrowserHistoryParser(browser_config, browser_telemetry)
         parser._default_since = now - 3600
@@ -265,16 +290,17 @@ class TestDBLockedHandling:
         """When the DB is locked, the parser logs a warning and returns None."""
         db_path = tmp_path / "History"
         # Create a valid Chromium DB
-        _create_chromium_db(db_path, [
-            ("https://chat.openai.com/locked", int(time.time() - 300)),
-        ])
+        _create_chromium_db(
+            db_path,
+            [
+                ("https://chat.openai.com/locked", int(time.time() - 300)),
+            ],
+        )
 
         parser = BrowserHistoryParser(browser_config, browser_telemetry)
         parser._default_since = time.time() - 3600
 
         # Simulate DB lock by patching _query_sqlite to raise OperationalError
-        original_query = parser._query_sqlite
-
         def locked_query(db_path, query, params, browser):
             raise sqlite3.OperationalError("database is locked")
 
@@ -287,7 +313,9 @@ class TestDBLockedHandling:
         # No metrics should be emitted
         browser_telemetry.browser_domain_visit_count.add.assert_not_called()
 
-    def test_permission_denied_handled_gracefully(self, browser_config, browser_telemetry, tmp_path):
+    def test_permission_denied_handled_gracefully(
+        self, browser_config, browser_telemetry, tmp_path
+    ):
         """PermissionError during DB copy is handled gracefully."""
         db_path = tmp_path / "History"
         db_path.write_bytes(b"fake")

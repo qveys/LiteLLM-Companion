@@ -82,9 +82,7 @@ def _fake_proc(
 
 def _desktop_detected_apps(config, telemetry, procs) -> dict:
     """Run a desktop scan with given processes and return detected apps."""
-    with patch(
-        "ai_cost_observer.detectors.desktop.get_foreground_app", return_value=None
-    ):
+    with patch("ai_cost_observer.detectors.desktop.get_foreground_app", return_value=None):
         detector = DesktopDetector(config, telemetry)
         with patch("psutil.process_iter", return_value=procs):
             detector.scan()
@@ -133,11 +131,7 @@ class TestPositiveDetection:
 
     def test_comet_detected(self, real_config, desktop_telemetry):
         """D3: Comet (Perplexity rebrand) detected as Perplexity (Tier 1)."""
-        procs = [
-            _fake_proc(
-                102, "Comet", "/Applications/Comet.app/Contents/MacOS/Comet"
-            )
-        ]
+        procs = [_fake_proc(102, "Comet", "/Applications/Comet.app/Contents/MacOS/Comet")]
         snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
         assert "Perplexity" in snapshot
 
@@ -147,9 +141,7 @@ class TestPositiveDetection:
             "/Users/user/Library/Application Support/JetBrains"
             "/IntelliJIdea2024.3/copilot-agent/bin/copilot-language-server"
         )
-        procs = [
-            _fake_proc(103, "copilot-language-server", jetbrains_exe)
-        ]
+        procs = [_fake_proc(103, "copilot-language-server", jetbrains_exe)]
         snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
         assert "JetBrains AI" in snapshot
 
@@ -252,19 +244,13 @@ class TestNegativeDetection:
 
     def test_gh_alone_not_detected(self, real_config, cli_telemetry):
         """C5: gh without copilot NOT detected (no false positive)."""
-        procs = [
-            _fake_proc(300, "gh", "/usr/local/bin/gh", ["gh", "pr", "list"])
-        ]
+        procs = [_fake_proc(300, "gh", "/usr/local/bin/gh", ["gh", "pr", "list"])]
         snapshot = _cli_detected_tools(real_config, cli_telemetry, procs)
         assert "github-copilot-cli" not in snapshot
 
     def test_node_random_not_detected(self, real_config, cli_telemetry):
         """Random node process (webpack) NOT detected."""
-        procs = [
-            _fake_proc(
-                301, "node", "/usr/local/bin/node", ["node", "webpack", "serve"]
-            )
-        ]
+        procs = [_fake_proc(301, "node", "/usr/local/bin/node", ["node", "webpack", "serve"])]
         snapshot = _cli_detected_tools(real_config, cli_telemetry, procs)
         assert len(snapshot) == 0
 
@@ -341,41 +327,25 @@ class TestEdgeCases:
 
     def test_codex_desktop_detected(self, real_config, desktop_telemetry):
         """Codex Desktop detected via process name (Tier 1)."""
-        procs = [
-            _fake_proc(
-                406, "Codex", "/Applications/Codex.app/Contents/MacOS/Codex"
-            )
-        ]
+        procs = [_fake_proc(406, "Codex", "/Applications/Codex.app/Contents/MacOS/Codex")]
         snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
         assert "Codex Desktop" in snapshot
 
     def test_zed_detected(self, real_config, desktop_telemetry):
         """Zed editor detected via process name (Tier 1)."""
-        procs = [
-            _fake_proc(
-                407, "zed", "/Applications/Zed.app/Contents/MacOS/zed"
-            )
-        ]
+        procs = [_fake_proc(407, "zed", "/Applications/Zed.app/Contents/MacOS/zed")]
         snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
         assert "Zed" in snapshot
 
     def test_codex_desktop_not_claimed_as_cli(self, real_config, cli_telemetry):
         """Codex Desktop process NOT claimed by CLI detector (dedup guard)."""
-        procs = [
-            _fake_proc(
-                408, "Codex", "/Applications/Codex.app/Contents/MacOS/Codex"
-            )
-        ]
+        procs = [_fake_proc(408, "Codex", "/Applications/Codex.app/Contents/MacOS/Codex")]
         snapshot = _cli_detected_tools(real_config, cli_telemetry, procs)
         assert "codex-cli" not in snapshot
 
     def test_existing_ollama_still_works(self, real_config, desktop_telemetry):
         """Non-regression: Ollama GUI still detected."""
-        procs = [
-            _fake_proc(
-                404, "Ollama", "/Applications/Ollama.app/Contents/MacOS/Ollama"
-            )
-        ]
+        procs = [_fake_proc(404, "Ollama", "/Applications/Ollama.app/Contents/MacOS/Ollama")]
         snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
         assert "Ollama (GUI)" in snapshot
 

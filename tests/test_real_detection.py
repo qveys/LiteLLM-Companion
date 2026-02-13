@@ -13,12 +13,11 @@ import platform
 from unittest.mock import Mock
 
 import psutil
-import pytest
 import yaml
 
 from ai_cost_observer.config import AppConfig
-from ai_cost_observer.detectors.desktop import DesktopDetector
 from ai_cost_observer.detectors.cli import CLIDetector
+from ai_cost_observer.detectors.desktop import DesktopDetector
 
 _OS_KEY = "macos" if platform.system() == "Darwin" else "windows"
 
@@ -27,9 +26,11 @@ _OS_KEY = "macos" if platform.system() == "Darwin" else "windows"
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_ai_config() -> dict:
     """Load ai_config.yaml from package data."""
     from importlib.resources import files
+
     data_dir = files("ai_cost_observer") / "data"
     config_path = data_dir / "ai_config.yaml"
     return yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -142,7 +143,8 @@ def _make_mock_telemetry() -> Mock:
     telemetry.set_running_cli = Mock()
     # Counters
     for attr in [
-        "app_active_duration", "app_estimated_cost",
+        "app_active_duration",
+        "app_estimated_cost",
     ]:
         counter = Mock()
         counter.add = Mock()
@@ -153,7 +155,9 @@ def _make_mock_telemetry() -> Mock:
         gauge.set = Mock()
         setattr(telemetry, attr, gauge)
     for attr in [
-        "cli_active_duration", "cli_estimated_cost", "cli_command_count",
+        "cli_active_duration",
+        "cli_estimated_cost",
+        "cli_command_count",
     ]:
         counter = Mock()
         counter.add = Mock()
@@ -174,6 +178,7 @@ def _make_real_config() -> AppConfig:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestRealDesktopDetection:
     """Verify DesktopDetector against the real process list."""
@@ -247,9 +252,7 @@ class TestRealDesktopDetection:
         detector = DesktopDetector(config, telemetry)
         detector.scan()
 
-        running_in_state = {
-            name for name, st in detector._state.items() if st.was_running
-        }
+        running_in_state = {name for name, st in detector._state.items() if st.was_running}
 
         proc_map = _build_process_map(config.ai_apps)
         cmdline_map = _build_cmdline_map(config.ai_apps)
@@ -261,9 +264,7 @@ class TestRealDesktopDetection:
         print(f"  Expected running: {sorted(expected)}")
 
         for app_name in expected:
-            assert app_name in running_in_state, (
-                f"Internal state missing running app '{app_name}'"
-            )
+            assert app_name in running_in_state, f"Internal state missing running app '{app_name}'"
 
 
 class TestRealCLIDetection:
@@ -309,7 +310,10 @@ class TestRealCLIDetection:
             for pn in app.get("process_names", {}).get(_OS_KEY, []):
                 desktop_proc_lower.add(pn.lower())
         expected = _exclude_desktop_overlapping_tools(
-            expected, config.ai_cli_tools, desktop_proc_lower, procs,
+            expected,
+            config.ai_cli_tools,
+            desktop_proc_lower,
+            procs,
         )
 
         # Run detector scan
@@ -337,9 +341,7 @@ class TestRealCLIDetection:
         detector = CLIDetector(config, telemetry)
         detector.scan()
 
-        running_in_state = {
-            name for name, st in detector._state.items() if st.was_running
-        }
+        running_in_state = {name for name, st in detector._state.items() if st.was_running}
 
         proc_map = _build_process_map(config.ai_cli_tools)
         cmdline_map = _build_cmdline_map(config.ai_cli_tools)

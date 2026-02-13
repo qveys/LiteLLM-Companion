@@ -1,7 +1,7 @@
 """Tests for the prompt database storage module."""
 
 import sqlite3
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -12,7 +12,7 @@ class TestPromptDB:
     def test_create_db(self, tmp_path):
         """DB is created with correct schema."""
         db_path = tmp_path / "test.db"
-        db = PromptDB(db_path=db_path, encrypt=False)
+        PromptDB(db_path=db_path, encrypt=False)
 
         conn = sqlite3.connect(str(db_path))
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
@@ -90,8 +90,16 @@ class TestPromptDB:
         """get_stats returns correct aggregates."""
         db = PromptDB(db_path=tmp_path / "test.db", encrypt=False)
 
-        db.insert_prompt(tool_name="a", source="cli", input_tokens=100, output_tokens=50, estimated_cost_usd=0.01)
-        db.insert_prompt(tool_name="b", source="cli", input_tokens=200, output_tokens=100, estimated_cost_usd=0.02)
+        db.insert_prompt(
+            tool_name="a", source="cli", input_tokens=100, output_tokens=50, estimated_cost_usd=0.01
+        )
+        db.insert_prompt(
+            tool_name="b",
+            source="cli",
+            input_tokens=200,
+            output_tokens=100,
+            estimated_cost_usd=0.02,
+        )
 
         stats = db.get_stats()
         assert stats["total_prompts"] == 2

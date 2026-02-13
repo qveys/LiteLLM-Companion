@@ -42,8 +42,7 @@ def _setup_logging(debug: bool = False) -> None:
     logger.add(
         sys.stdout,
         format=(
-            "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8}"
-            " | {name}:{function}:{line} - {message}"
+            "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}"
         ),
         level="DEBUG" if debug else "INFO",
         colorize=True,
@@ -153,7 +152,8 @@ def run() -> None:
                     config.browser_history_interval_seconds,
                     stop_event,
                 ),
-                daemon=True, name="browser-history",
+                daemon=True,
+                name="browser-history",
             ),
             threading.Thread(
                 target=_run_periodic,
@@ -163,12 +163,14 @@ def run() -> None:
                     config.shell_history_interval_seconds,
                     stop_event,
                 ),
-                daemon=True, name="shell-history",
+                daemon=True,
+                name="shell-history",
             ),
             threading.Thread(
                 target=_run_periodic,
                 args=("token_tracker", token_tracker.scan, token_interval, stop_event),
-                daemon=True, name="token-tracker",
+                daemon=True,
+                name="token-tracker",
             ),
         ]
         # http_thread is already started by start_http_receiver(), don't re-start it

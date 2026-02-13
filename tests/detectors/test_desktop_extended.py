@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 import psutil
-import pytest
 
 from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.desktop import DesktopDetector
@@ -191,9 +190,7 @@ class TestDesktopAccessDenied:
 
         # Process that disappears mid-scan
         disappearing_proc = MagicMock()
-        disappearing_proc.info.__getitem__ = MagicMock(
-            side_effect=psutil.NoSuchProcess(999)
-        )
+        disappearing_proc.info.__getitem__ = MagicMock(side_effect=psutil.NoSuchProcess(999))
 
         mocker.patch("psutil.process_iter", return_value=[disappearing_proc])
         mocker.patch(
@@ -218,9 +215,7 @@ class TestDesktopAccessDenied:
         detector = DesktopDetector(config, telemetry)
 
         zombie_proc = MagicMock()
-        zombie_proc.info.__getitem__ = MagicMock(
-            side_effect=psutil.ZombieProcess(888)
-        )
+        zombie_proc.info.__getitem__ = MagicMock(side_effect=psutil.ZombieProcess(888))
 
         mocker.patch("psutil.process_iter", return_value=[zombie_proc])
         mocker.patch(

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 _DASHBOARDS_DIR = Path("infra/grafana/dashboards")
 _PROM_DS_UID = "prometheus-vps"
 

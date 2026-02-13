@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 _AI_CONFIG_PATH = Path("src/ai_cost_observer/data/ai_config.yaml")
 _BACKGROUND_JS_PATH = Path("chrome-extension/background.js")
 _POPUP_JS_PATH = Path("chrome-extension/popup.js")

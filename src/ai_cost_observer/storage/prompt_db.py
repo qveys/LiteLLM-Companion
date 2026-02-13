@@ -209,10 +209,20 @@ class PromptDB:
                         project_path, host_name
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
-                        now, tool_name, model_name, source, session_id,
-                        input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens,
-                        estimated_cost_usd, enc_prompt, enc_response,
-                        project_path, self._host_name,
+                        now,
+                        tool_name,
+                        model_name,
+                        source,
+                        session_id,
+                        input_tokens,
+                        output_tokens,
+                        cache_creation_tokens,
+                        cache_read_tokens,
+                        estimated_cost_usd,
+                        enc_prompt,
+                        enc_response,
+                        project_path,
+                        self._host_name,
                     ),
                 )
                 conn.commit()
@@ -243,8 +253,15 @@ class PromptDB:
                         total_input_tokens = excluded.total_input_tokens,
                         total_output_tokens = excluded.total_output_tokens,
                         total_cost_usd = excluded.total_cost_usd""",
-                    (session_id, tool_name, start_time, end_time,
-                     total_input_tokens, total_output_tokens, total_cost_usd),
+                    (
+                        session_id,
+                        tool_name,
+                        start_time,
+                        end_time,
+                        total_input_tokens,
+                        total_output_tokens,
+                        total_cost_usd,
+                    ),
                 )
                 conn.commit()
             finally:
@@ -327,7 +344,8 @@ class PromptDB:
                     conn.execute("VACUUM")
                 logger.debug(
                     "Cleaned up {} prompts older than {} days",
-                    deleted, self.retention_days,
+                    deleted,
+                    self.retention_days,
                 )
                 return deleted
             finally:
