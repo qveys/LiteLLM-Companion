@@ -25,15 +25,14 @@ class TestTokensEndpoint:
     def setup_method(self):
         # Reset the global token tracker
         http_receiver._token_tracker = None
+        self.config = AppConfig()
+        self.config.ai_domains = []
+        self.telemetry = _make_telemetry()
+        self.app = create_app(self.config, self.telemetry)
 
     def test_receive_token_event_without_tracker(self):
         """Without a token tracker, metrics are recorded directly."""
-        config = AppConfig()
-        config.ai_domains = []
-        telemetry = _make_telemetry()
-        app = create_app(config, telemetry)
-
-        with app.test_client() as client:
+        with self.app.test_client() as client:
             resp = client.post(
                 "/api/tokens",
                 data=json.dumps({
@@ -55,21 +54,16 @@ class TestTokensEndpoint:
         assert data["processed"] == 1
 
         labels = {"tool.name": "claude-web", "model.name": "claude-sonnet-4-5"}
-        telemetry.tokens_input_total.add.assert_called_once_with(1000, labels)
-        telemetry.tokens_output_total.add.assert_called_once_with(500, labels)
+        self.telemetry.tokens_input_total.add.assert_called_once_with(1000, labels)
+        self.telemetry.tokens_output_total.add.assert_called_once_with(500, labels)
 
         # Cost must be recorded in the fallback path (fixes #45)
         expected_cost = estimate_cost("claude-sonnet-4-5", 1000, 500)
-        telemetry.tokens_cost_usd_total.add.assert_called_once_with(expected_cost, labels)
+        self.telemetry.tokens_cost_usd_total.add.assert_called_once_with(expected_cost, labels)
 
     def test_fallback_cost_uses_default_pricing_for_unknown_model(self):
         """Unknown model falls back to mid-range pricing for cost estimation."""
-        config = AppConfig()
-        config.ai_domains = []
-        telemetry = _make_telemetry()
-        app = create_app(config, telemetry)
-
-        with app.test_client() as client:
+        with self.app.test_client() as client:
             resp = client.post(
                 "/api/tokens",
                 data=json.dumps({
@@ -90,16 +84,11 @@ class TestTokensEndpoint:
         labels = {"tool.name": "some-tool", "model.name": "unknown-model-xyz"}
         expected_cost = estimate_cost("unknown-model-xyz", 5000, 1000)
         assert expected_cost > 0  # default fallback pricing should produce non-zero cost
-        telemetry.tokens_cost_usd_total.add.assert_called_once_with(expected_cost, labels)
+        self.telemetry.tokens_cost_usd_total.add.assert_called_once_with(expected_cost, labels)
 
     def test_fallback_no_cost_when_zero_tokens(self):
         """No cost metric recorded when both token counts are zero."""
-        config = AppConfig()
-        config.ai_domains = []
-        telemetry = _make_telemetry()
-        app = create_app(config, telemetry)
-
-        with app.test_client() as client:
+        with self.app.test_client() as client:
             resp = client.post(
                 "/api/tokens",
                 data=json.dumps({
@@ -117,18 +106,14 @@ class TestTokensEndpoint:
             )
 
         assert resp.status_code == 200
-        telemetry.tokens_cost_usd_total.add.assert_not_called()
+        self.telemetry.tokens_cost_usd_total.add.assert_not_called()
 
     def test_receive_token_event_with_tracker(self):
         """With a token tracker, events are forwarded to it."""
-        config = AppConfig()
-        config.ai_domains = []
-        telemetry = _make_telemetry()
-
         tracker = MagicMock()
         http_receiver.set_token_tracker(tracker)
-
-        app = create_app(config, telemetry)
+        # Re-create app with tracker set
+        app = create_app(self.config, self.telemetry)
 
         with app.test_client() as client:
             resp = client.post(
@@ -159,12 +144,7 @@ class TestTokensEndpoint:
 
     def test_invalid_json(self):
         """Invalid JSON returns 400."""
-        config = AppConfig()
-        config.ai_domains = []
-        telemetry = _make_telemetry()
-        app = create_app(config, telemetry)
-
-        with app.test_client() as client:
+        with self.app.test_client() as client:
             resp = client.post(
                 "/api/tokens",
                 data="not json",
@@ -175,12 +155,7 @@ class TestTokensEndpoint:
 
     def test_empty_events(self):
         """Empty events list returns success with 0 processed."""
-        config = AppConfig()
-        config.ai_domains = []
-        telemetry = _make_telemetry()
-        app = create_app(config, telemetry)
-
-        with app.test_client() as client:
+        with self.app.test_client() as client:
             resp = client.post(
                 "/api/tokens",
                 data=json.dumps({"events": []}),
@@ -192,12 +167,7 @@ class TestTokensEndpoint:
 
     def test_health_endpoint(self):
         """Health endpoint still works."""
-        config = AppConfig()
-        config.ai_domains = []
-        telemetry = _make_telemetry()
-        app = create_app(config, telemetry)
-
-        with app.test_client() as client:
+        with self.app.test_client() as client:
             resp = client.get("/health")
 
         assert resp.status_code == 200
