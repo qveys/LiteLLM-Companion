@@ -105,10 +105,10 @@ class WSLDetector:
         self._running_tools = currently_running
 
         # Build snapshot for ObservableGauge callback
-        snapshot: dict[str, dict] = {}
-        for tool_name, distro in currently_running:
-            key = f"{tool_name}:wsl:{distro}"
-            snapshot[key] = self._build_labels(tool_name, distro)
+        snapshot = {
+            f"{tool_name}:wsl:{distro}": self._build_labels(tool_name, distro)
+            for tool_name, distro in currently_running
+        }
         self.telemetry.set_running_wsl(snapshot)
 
     def _build_labels(self, tool_name: str, distro: str) -> dict[str, str]:

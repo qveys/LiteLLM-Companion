@@ -178,5 +178,5 @@ class TestWSLMultipleDistros:
         # Snapshot should only have Ubuntu entry
         snapshot = telemetry._wsl_snapshots[1]
         assert len(snapshot) == 1
-        labels = list(snapshot.values())[0]
-        assert labels["wsl.distro"] == "Ubuntu"
+        assert "claude-code:wsl:Ubuntu" in snapshot
+        assert snapshot["claude-code:wsl:Ubuntu"]["wsl.distro"] == "Ubuntu"

@@ -316,9 +316,8 @@ class TestBug15WslLinuxKey:
         detector.scan()
 
         assert len(wsl_snapshots) == 1
-        assert len(wsl_snapshots[0]) == 1
-        labels = list(wsl_snapshots[0].values())[0]
-        assert labels["cli.name"] == "mytool"
+        assert "mytool:wsl:Ubuntu" in wsl_snapshots[0]
+        assert wsl_snapshots[0]["mytool:wsl:Ubuntu"]["cli.name"] == "mytool"
 
     def test_fallback_to_macos_when_no_linux_key(self, mocker):
         from ai_cost_observer.detectors.wsl import WSLDetector
@@ -353,9 +352,8 @@ class TestBug15WslLinuxKey:
         detector.scan()
 
         assert len(wsl_snapshots) == 1
-        assert len(wsl_snapshots[0]) == 1
-        labels = list(wsl_snapshots[0].values())[0]
-        assert labels["cli.name"] == "oldtool"
+        assert "oldtool:wsl:Debian" in wsl_snapshots[0]
+        assert wsl_snapshots[0]["oldtool:wsl:Debian"]["cli.name"] == "oldtool"
 
     def test_cli_tools_have_linux_key(self):
         """All CLI tools in ai_config.yaml should have a linux key."""
