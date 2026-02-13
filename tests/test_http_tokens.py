@@ -4,6 +4,7 @@ import json
 from unittest.mock import MagicMock
 
 from ai_cost_observer.config import AppConfig
+from ai_cost_observer.detectors.token_tracker import estimate_cost
 from ai_cost_observer.server import http_receiver
 from ai_cost_observer.server.http_receiver import create_app
 
@@ -53,12 +54,70 @@ class TestTokensEndpoint:
         data = resp.get_json()
         assert data["processed"] == 1
 
-        telemetry.tokens_input_total.add.assert_called_once_with(
-            1000, {"tool.name": "claude-web", "model.name": "claude-sonnet-4-5"}
-        )
-        telemetry.tokens_output_total.add.assert_called_once_with(
-            500, {"tool.name": "claude-web", "model.name": "claude-sonnet-4-5"}
-        )
+        labels = {"tool.name": "claude-web", "model.name": "claude-sonnet-4-5"}
+        telemetry.tokens_input_total.add.assert_called_once_with(1000, labels)
+        telemetry.tokens_output_total.add.assert_called_once_with(500, labels)
+
+        # Cost must be recorded in the fallback path (fixes #45)
+        expected_cost = estimate_cost("claude-sonnet-4-5", 1000, 500)
+        telemetry.tokens_cost_usd_total.add.assert_called_once_with(expected_cost, labels)
+
+    def test_fallback_cost_uses_default_pricing_for_unknown_model(self):
+        """Unknown model falls back to mid-range pricing for cost estimation."""
+        config = AppConfig()
+        config.ai_domains = []
+        telemetry = _make_telemetry()
+        app = create_app(config, telemetry)
+
+        with app.test_client() as client:
+            resp = client.post(
+                "/api/tokens",
+                data=json.dumps({
+                    "events": [
+                        {
+                            "type": "api_intercept",
+                            "tool": "some-tool",
+                            "model": "unknown-model-xyz",
+                            "input_tokens": 5000,
+                            "output_tokens": 1000,
+                        }
+                    ]
+                }),
+                content_type="application/json",
+            )
+
+        assert resp.status_code == 200
+        labels = {"tool.name": "some-tool", "model.name": "unknown-model-xyz"}
+        expected_cost = estimate_cost("unknown-model-xyz", 5000, 1000)
+        assert expected_cost > 0  # default fallback pricing should produce non-zero cost
+        telemetry.tokens_cost_usd_total.add.assert_called_once_with(expected_cost, labels)
+
+    def test_fallback_no_cost_when_zero_tokens(self):
+        """No cost metric recorded when both token counts are zero."""
+        config = AppConfig()
+        config.ai_domains = []
+        telemetry = _make_telemetry()
+        app = create_app(config, telemetry)
+
+        with app.test_client() as client:
+            resp = client.post(
+                "/api/tokens",
+                data=json.dumps({
+                    "events": [
+                        {
+                            "type": "api_intercept",
+                            "tool": "test-tool",
+                            "model": "gpt-4o",
+                            "input_tokens": 0,
+                            "output_tokens": 0,
+                        }
+                    ]
+                }),
+                content_type="application/json",
+            )
+
+        assert resp.status_code == 200
+        telemetry.tokens_cost_usd_total.add.assert_not_called()
 
     def test_receive_token_event_with_tracker(self):
         """With a token tracker, events are forwarded to it."""
