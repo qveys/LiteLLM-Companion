@@ -296,14 +296,10 @@ class TestBug15WslLinuxKey:
             ],
         )
 
-        class _Recorder:
-            def __init__(self):
-                self.calls = []
-
-            def add(self, v, labels):
-                self.calls.append((v, labels.copy()))
-
-        telemetry = SimpleNamespace(cli_running=_Recorder())
+        wsl_snapshots = []
+        telemetry = SimpleNamespace(
+            set_running_wsl=lambda running: wsl_snapshots.append(dict(running)),
+        )
         detector = WSLDetector(config, telemetry)
         detector._enabled = True
 
@@ -319,8 +315,10 @@ class TestBug15WslLinuxKey:
         )
         detector.scan()
 
-        assert len(telemetry.cli_running.calls) == 1
-        assert telemetry.cli_running.calls[0][1]["cli.name"] == "mytool"
+        assert len(wsl_snapshots) == 1
+        assert len(wsl_snapshots[0]) == 1
+        labels = list(wsl_snapshots[0].values())[0]
+        assert labels["cli.name"] == "mytool"
 
     def test_fallback_to_macos_when_no_linux_key(self, mocker):
         from ai_cost_observer.detectors.wsl import WSLDetector
@@ -335,14 +333,10 @@ class TestBug15WslLinuxKey:
             ],
         )
 
-        class _Recorder:
-            def __init__(self):
-                self.calls = []
-
-            def add(self, v, labels):
-                self.calls.append((v, labels.copy()))
-
-        telemetry = SimpleNamespace(cli_running=_Recorder())
+        wsl_snapshots = []
+        telemetry = SimpleNamespace(
+            set_running_wsl=lambda running: wsl_snapshots.append(dict(running)),
+        )
         detector = WSLDetector(config, telemetry)
         detector._enabled = True
 
@@ -358,8 +352,10 @@ class TestBug15WslLinuxKey:
         )
         detector.scan()
 
-        assert len(telemetry.cli_running.calls) == 1
-        assert telemetry.cli_running.calls[0][1]["cli.name"] == "oldtool"
+        assert len(wsl_snapshots) == 1
+        assert len(wsl_snapshots[0]) == 1
+        labels = list(wsl_snapshots[0].values())[0]
+        assert labels["cli.name"] == "oldtool"
 
     def test_cli_tools_have_linux_key(self):
         """All CLI tools in ai_config.yaml should have a linux key."""

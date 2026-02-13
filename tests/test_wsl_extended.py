@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -11,17 +10,12 @@ from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.wsl import WSLDetector
 
 
-class _Recorder:
-    def __init__(self) -> None:
-        self.calls: list[tuple[int, dict[str, str]]] = []
-
-    def add(self, value: int, labels: dict[str, str]) -> None:
-        self.calls.append((value, labels.copy()))
-
-
 class _DummyTelemetry:
     def __init__(self) -> None:
-        self.cli_running = _Recorder()
+        self._wsl_snapshots: list[dict[str, dict]] = []
+
+    def set_running_wsl(self, running: dict[str, dict]) -> None:
+        self._wsl_snapshots.append(dict(running))
 
 
 def _make_config(cli_tools=None):
@@ -55,7 +49,7 @@ class TestWSLDisabledOnMacOS:
         assert detector._enabled is False
 
         detector.scan()  # Should no-op
-        assert len(telemetry.cli_running.calls) == 0
+        assert len(telemetry._wsl_snapshots) == 0
 
     def test_disabled_on_linux(self, mocker):
         """WSL detector no-ops when platform is Linux."""
@@ -91,7 +85,6 @@ class TestWSLMultipleDistros:
         )
 
         def _fake_run(args, **kwargs):
-            # Determine which distro is being queried
             if "Ubuntu" in args:
                 return SimpleNamespace(returncode=0, stdout=ubuntu_output)
             elif "Debian" in args:
@@ -102,17 +95,17 @@ class TestWSLMultipleDistros:
 
         detector.scan()
 
-        values = [v for v, _ in telemetry.cli_running.calls]
-        assert values == [1, 1]
+        snapshot = telemetry._wsl_snapshots[0]
+        assert len(snapshot) == 2
 
-        # Check labels
-        labels_by_tool = {c[1]["cli.name"]: c[1] for c in telemetry.cli_running.calls}
+        # Check labels by inspecting snapshot values
+        labels_by_tool = {v["cli.name"]: v for v in snapshot.values()}
         assert labels_by_tool["claude-code"]["wsl.distro"] == "Ubuntu"
         assert labels_by_tool["claude-code"]["runtime.environment"] == "wsl"
         assert labels_by_tool["ollama"]["wsl.distro"] == "Debian"
 
     def test_same_tool_multiple_distros(self, mocker):
-        """Same tool in multiple distros generates separate running events."""
+        """Same tool in multiple distros generates separate running entries."""
         config = _make_config()
         telemetry = _DummyTelemetry()
         detector = WSLDetector(config, telemetry)
@@ -134,15 +127,14 @@ class TestWSLMultipleDistros:
 
         detector.scan()
 
-        # Should get two +1 events (claude in Ubuntu and claude in Fedora)
-        values = [v for v, _ in telemetry.cli_running.calls]
-        assert values == [1, 1]
+        snapshot = telemetry._wsl_snapshots[0]
+        assert len(snapshot) == 2
 
-        distros = {c[1]["wsl.distro"] for c in telemetry.cli_running.calls}
+        distros = {v["wsl.distro"] for v in snapshot.values()}
         assert distros == {"Ubuntu", "Fedora"}
 
     def test_tool_stops_in_one_distro(self, mocker):
-        """When a tool stops in one distro, only that distro gets -1."""
+        """When a tool stops in one distro, only that distro is removed from snapshot."""
         config = _make_config()
         telemetry = _DummyTelemetry()
         detector = WSLDetector(config, telemetry)
@@ -168,12 +160,9 @@ class TestWSLMultipleDistros:
         )
         detector.scan()
 
-        assert len(telemetry.cli_running.calls) == 2
-        telemetry.cli_running.calls.clear()
+        assert len(telemetry._wsl_snapshots[0]) == 2
 
         # Scan 2: claude stops in Debian only
-        call_count = [0]
-
         def _fake_run_selective(args, **kwargs):
             if "Debian" in args:
                 return SimpleNamespace(returncode=0, stdout=ps_without_claude)
@@ -186,7 +175,8 @@ class TestWSLMultipleDistros:
 
         detector.scan()
 
-        # Should get one -1 for Debian
-        assert len(telemetry.cli_running.calls) == 1
-        assert telemetry.cli_running.calls[0][0] == -1
-        assert telemetry.cli_running.calls[0][1]["wsl.distro"] == "Debian"
+        # Snapshot should only have Ubuntu entry
+        snapshot = telemetry._wsl_snapshots[1]
+        assert len(snapshot) == 1
+        labels = list(snapshot.values())[0]
+        assert labels["wsl.distro"] == "Ubuntu"
