@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, Mock, patch
 
-import psutil
 import pytest
 
 from ai_cost_observer.config import AppConfig, _load_builtin_ai_config
@@ -59,15 +58,23 @@ def cli_telemetry() -> Mock:
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 
+_UNSET = object()
+
+
 def _fake_proc(
     pid: int,
     name: str,
     exe: str | None = None,
-    cmdline: list[str] | None = None,
+    cmdline: list[str] | None | object = _UNSET,
 ) -> MagicMock:
-    """Create a mock psutil process with proc.info dict."""
+    """Create a mock psutil process with proc.info dict.
+
+    When *cmdline* is omitted, defaults to ``[]``.
+    Pass ``None`` explicitly to test the ``cmdline is None`` edge case.
+    """
     proc = MagicMock()
-    proc.info = {"pid": pid, "name": name, "exe": exe, "cmdline": cmdline or []}
+    cmdline_value = [] if cmdline is _UNSET else cmdline
+    proc.info = {"pid": pid, "name": name, "exe": exe, "cmdline": cmdline_value}
     proc.cpu_percent.return_value = 5.0
     proc.memory_info.return_value = Mock(rss=100 * 1024 * 1024)
     return proc
@@ -134,17 +141,29 @@ class TestPositiveDetection:
         snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
         assert "Perplexity" in snapshot
 
-    def test_copilot_language_server(self, real_config, desktop_telemetry):
-        """D4: copilot-language-server detected as JetBrains AI (Tier 1)."""
+    def test_copilot_language_server_jetbrains(self, real_config, desktop_telemetry):
+        """D4: copilot-language-server from JetBrains path detected (Tier 2)."""
+        jetbrains_exe = (
+            "/Users/user/Library/Application Support/JetBrains"
+            "/IntelliJIdea2024.3/copilot-agent/bin/copilot-language-server"
+        )
         procs = [
-            _fake_proc(
-                103,
-                "copilot-language-server",
-                "/Users/user/.copilot-agent/bin/copilot-language-server",
-            )
+            _fake_proc(103, "copilot-language-server", jetbrains_exe)
         ]
         snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
         assert "JetBrains AI" in snapshot
+
+    def test_copilot_language_server_vscode_not_jetbrains(self, real_config, desktop_telemetry):
+        """copilot-language-server from VS Code path NOT misattributed to JetBrains AI."""
+        procs = [
+            _fake_proc(
+                110,
+                "copilot-language-server",
+                "/Users/user/.vscode/extensions/github.copilot-1.200/dist/language-server.js",
+            )
+        ]
+        snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
+        assert "JetBrains AI" not in snapshot
 
     def test_superwhisper_detected(self, real_config, desktop_telemetry):
         """D5: superwhisper detected (Tier 1)."""
@@ -197,7 +216,7 @@ class TestPositiveDetection:
         assert "gemini-cli" in snapshot
 
     def test_vibe_python_exe_path(self, real_config, cli_telemetry):
-        """C4: python from uv/tools/mistral-vibe detected as vibe."""
+        """C4: python from uv/tools/mistral-vibe detected as vibe (Tier 2 exe path)."""
         procs = [
             _fake_proc(
                 203,
@@ -310,13 +329,45 @@ class TestEdgeCases:
         # Should not raise
         _cli_detected_tools(real_config, cli_telemetry, procs)
 
-    def test_exe_access_denied(self, real_config, cli_telemetry):
-        """psutil.AccessDenied on proc.exe() does not crash the CLI scanner."""
-        proc = MagicMock()
-        proc.info = {"pid": 403, "name": "mystery", "exe": None, "cmdline": None}
-        proc.exe.side_effect = psutil.AccessDenied(pid=403)
+    def test_exe_missing_no_crash_cli(self, real_config, cli_telemetry):
+        """proc.info['exe'] = None (missing exe) does not crash the CLI scanner.
+
+        Note: psutil.process_iter pre-populates proc.info, so AccessDenied on
+        exe manifests as exe=None (not an exception on proc.exe()).
+        """
+        proc = _fake_proc(403, "mystery", None, None)
         # Should not raise
         _cli_detected_tools(real_config, cli_telemetry, [proc])
+
+    def test_codex_desktop_detected(self, real_config, desktop_telemetry):
+        """Codex Desktop detected via process name (Tier 1)."""
+        procs = [
+            _fake_proc(
+                406, "Codex", "/Applications/Codex.app/Contents/MacOS/Codex"
+            )
+        ]
+        snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
+        assert "Codex Desktop" in snapshot
+
+    def test_zed_detected(self, real_config, desktop_telemetry):
+        """Zed editor detected via process name (Tier 1)."""
+        procs = [
+            _fake_proc(
+                407, "zed", "/Applications/Zed.app/Contents/MacOS/zed"
+            )
+        ]
+        snapshot = _desktop_detected_apps(real_config, desktop_telemetry, procs)
+        assert "Zed" in snapshot
+
+    def test_codex_desktop_not_claimed_as_cli(self, real_config, cli_telemetry):
+        """Codex Desktop process NOT claimed by CLI detector (dedup guard)."""
+        procs = [
+            _fake_proc(
+                408, "Codex", "/Applications/Codex.app/Contents/MacOS/Codex"
+            )
+        ]
+        snapshot = _cli_detected_tools(real_config, cli_telemetry, procs)
+        assert "codex-cli" not in snapshot
 
     def test_existing_ollama_still_works(self, real_config, desktop_telemetry):
         """Non-regression: Ollama GUI still detected."""

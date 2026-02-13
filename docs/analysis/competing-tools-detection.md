@@ -185,12 +185,13 @@ No competing tool does process-level CLI detection. WakaTime uses hooks (require
 
 ### 3. Add Layered Fallback for Detection Robustness
 Following Timing.app's approach:
+```text
+Tier 0: Bundle ID match (macOS desktop apps — most reliable) [future enhancement]
+Tier 1: Process name exact match (fast, existing) [implemented]
+Tier 2: Exe path substring match (catches version-named binaries) [implemented]
+Tier 3: Cmdline[0:3] substring match (catches Node/Python wrappers) [implemented]
 ```
-Tier 0: Bundle ID match (macOS desktop apps — most reliable)
-Tier 1: Process name exact match (fast, existing)
-Tier 2: Exe path substring match (catches version-named binaries)
-Tier 3: Cmdline[0:3] substring match (catches Node/Python wrappers)
-```
+> **Note:** Tier 0 (Bundle ID) is not yet implemented. Current codebase uses Tiers 1–3.
 
 ### 4. Consider Hook-Based Detection as a Complement
 For tools that support it (Claude Code, Codex), hook-based detection could provide richer data (files modified, prompts used) alongside our process scanning. This is a future enhancement beyond the current scope.

@@ -57,10 +57,11 @@ class CLIDetector:
                 self._cmdline_patterns[pattern.lower()] = tool
 
         # Build exe path pattern → tool config lookup (Tier 2 matching)
-        self._exe_patterns: dict[str, dict] = {}
+        # Use list of tuples to avoid key collisions if multiple tools share a pattern.
+        self._exe_patterns: list[tuple[str, dict]] = []
         for tool in config.ai_cli_tools:
             for pattern in tool.get("exe_path_patterns", []):
-                self._exe_patterns[pattern.lower()] = tool
+                self._exe_patterns.append((pattern.lower(), tool))
 
         # Desktop app process names (lowercased) — used as a fallback name-based dedup
         # when no desktop_detector reference is available for PID-based dedup.
@@ -109,17 +110,24 @@ class CLIDetector:
                         tool_cfg = self._process_map[proc_name_lower]
 
                 # Tier 2: match by exe path
-                if tool_cfg is None and self._exe_patterns:
+                # Apply the same name-based dedup guard as Tier 1 to prevent
+                # desktop apps from being claimed as CLI tools via exe path.
+                if tool_cfg is None and self._exe_patterns and (
+                    has_pid_dedup or proc_name_lower not in self._desktop_proc_lower
+                ):
                     exe_path = proc.info.get("exe") or ""
-                    if exe_path:
+                    if exe_path and not exe_path.startswith("/System/Library/"):
                         exe_lower = exe_path.lower()
-                        for pattern, candidate in self._exe_patterns.items():
+                        for pattern, candidate in self._exe_patterns:
                             if pattern in exe_lower:
                                 tool_cfg = candidate
                                 break
 
                 # Tier 3: match by cmdline for interpreted scripts (node, python)
-                if tool_cfg is None and self._cmdline_patterns:
+                # Same dedup guard as Tier 1/2.
+                if tool_cfg is None and self._cmdline_patterns and (
+                    has_pid_dedup or proc_name_lower not in self._desktop_proc_lower
+                ):
                     cmdline = proc.info.get("cmdline") or []
                     if cmdline:
                         cmdline_str = " ".join(cmdline[:3]).lower()

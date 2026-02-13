@@ -48,13 +48,13 @@ ai_apps:
 
   - name: JetBrains AI
     process_names:
-      macos: ["idea", "pycharm", "webstorm", "goland", "clion", "rider", "copilot-language-server"]
+      macos: ["idea", "pycharm", "webstorm", "goland", "clion", "rider"]
       windows: ["idea64.exe", "pycharm64.exe", "webstorm64.exe", "goland64.exe"]
+    # copilot-language-server removed from process_names — it's shared with
+    # VS Code Copilot. Use exe_path_patterns to disambiguate JetBrains installs.
+    exe_path_patterns: ["jetbrains", "/idea/", "/pycharm/", "/webstorm/", "/goland/", "/clion/", "/rider/"]
     category: code
     cost_per_hour: 0.40
-    # These process names match the IDE itself, not the AI plugin.
-    # Detection is a heuristic: the IDE is running, but AI usage
-    # is only active when the JetBrains AI Assistant plugin is installed.
     requires_plugin: true
     note: "Detects JetBrains IDE process; assumes AI Assistant plugin is active"
 
@@ -276,7 +276,7 @@ ai_cli_tools:
       linux: []
       windows: []
     command_patterns: ["gh copilot"]
-    cmdline_patterns: ["gh copilot"]
+    cmdline_patterns: ["gh copilot", "gh.exe copilot"]
     category: code
     cost_per_hour: 0.40
 
@@ -333,7 +333,7 @@ ai_cli_tools:
       windows: ["codex.exe"]
     command_patterns: ["codex"]
     cmdline_patterns: ["/codex", "codex "]
-    exe_path_patterns: ["/codex"]
+    exe_path_patterns: ["/.codex/"]
     category: code
     cost_per_hour: 1.00
 
@@ -344,6 +344,7 @@ ai_cli_tools:
       windows: ["vibe.exe"]
     command_patterns: ["vibe"]
     cmdline_patterns: ["vibe"]
+    exe_path_patterns: ["mistral-vibe"]
     category: code
     cost_per_hour: 0.60
 

@@ -52,10 +52,11 @@ class DesktopDetector:
                 self._cmdline_patterns[pattern.lower()] = app
 
         # Build exe path pattern → app config lookup (Tier 2 matching)
-        self._exe_patterns: dict[str, dict] = {}
+        # Use list of tuples to avoid key collisions if multiple apps share a pattern.
+        self._exe_patterns: list[tuple[str, dict]] = []
         for app in config.ai_apps:
             for pattern in app.get("exe_path_patterns", []):
-                self._exe_patterns[pattern.lower()] = app
+                self._exe_patterns.append((pattern.lower(), app))
 
     def scan(self) -> None:
         """Run one scan cycle: detect apps, update metrics."""
@@ -90,7 +91,7 @@ class DesktopDetector:
                     exe_path = proc.info.get("exe") or ""
                     if exe_path and not exe_path.startswith("/System/Library/"):
                         exe_lower = exe_path.lower()
-                        for pattern, candidate in self._exe_patterns.items():
+                        for pattern, candidate in self._exe_patterns:
                             if pattern in exe_lower:
                                 app_cfg = candidate
                                 break
