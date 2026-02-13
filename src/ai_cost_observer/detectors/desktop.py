@@ -13,7 +13,8 @@ from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.active_window import get_foreground_app
 from ai_cost_observer.telemetry import TelemetryManager
 
-_OS_KEY = "macos" if platform.system() == "Darwin" else "windows"
+_OS = platform.system()
+_OS_KEY = "macos" if _OS == "Darwin" else ("linux" if _OS == "Linux" else "windows")
 
 
 @dataclass
