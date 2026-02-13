@@ -8,17 +8,12 @@ from ai_cost_observer.config import AppConfig
 from ai_cost_observer.detectors.wsl import WSLDetector
 
 
-class _Recorder:
-    def __init__(self) -> None:
-        self.calls: list[tuple[int, dict[str, str]]] = []
-
-    def add(self, value: int, labels: dict[str, str]) -> None:
-        self.calls.append((value, labels.copy()))
-
-
 class _DummyTelemetry:
     def __init__(self) -> None:
-        self.cli_running = _Recorder()
+        self._wsl_snapshots: list[dict[str, dict]] = []
+
+    def set_running_wsl(self, running: dict[str, dict]) -> None:
+        self._wsl_snapshots.append(dict(running))
 
 
 def test_wsl_detector_emits_transition_deltas_only_once_per_state(mocker) -> None:
@@ -52,6 +47,14 @@ def test_wsl_detector_emits_transition_deltas_only_once_per_state(mocker) -> Non
     detector.scan()
     detector.scan()
 
-    assert [value for value, _ in telemetry.cli_running.calls] == [1, -1]
-    assert telemetry.cli_running.calls[0][1]["runtime.environment"] == "wsl"
-    assert telemetry.cli_running.calls[0][1]["wsl.distro"] == "Ubuntu"
+    # Scan 1: claude detected → snapshot has 1 entry
+    assert len(telemetry._wsl_snapshots[0]) == 1
+    labels = list(telemetry._wsl_snapshots[0].values())[0]
+    assert labels["runtime.environment"] == "wsl"
+    assert labels["wsl.distro"] == "Ubuntu"
+
+    # Scan 2: claude still running → snapshot still has 1 entry
+    assert len(telemetry._wsl_snapshots[1]) == 1
+
+    # Scan 3: claude stopped → snapshot is empty
+    assert len(telemetry._wsl_snapshots[2]) == 0

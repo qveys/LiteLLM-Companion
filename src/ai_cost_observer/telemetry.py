@@ -77,6 +77,7 @@ class TelemetryManager:
         # Key = app/tool name, Value = OTel attribute dict (labels).
         self._running_apps: dict[str, dict] = {}
         self._running_cli: dict[str, dict] = {}
+        self._running_wsl: dict[str, dict] = {}
 
         # --- Metric Instruments ---
         self.app_running = self.meter.create_observable_gauge(
@@ -149,6 +150,13 @@ class TelemetryManager:
         """
         self._running_cli = dict(running)
 
+    def set_running_wsl(self, running: dict[str, dict]) -> None:
+        """Update the snapshot of currently running WSL AI tools.
+
+        Called by WSLDetector after each scan.
+        """
+        self._running_wsl = dict(running)
+
     def _observe_app_running(self, options):
         """ObservableGauge callback: yield one Observation per running app."""
         for _name, labels in self._running_apps.items():
@@ -157,6 +165,8 @@ class TelemetryManager:
     def _observe_cli_running(self, options):
         """ObservableGauge callback: yield one Observation per running CLI tool."""
         for _name, labels in self._running_cli.items():
+            yield Observation(1, labels)
+        for _name, labels in self._running_wsl.items():
             yield Observation(1, labels)
 
     def shutdown(self) -> None:

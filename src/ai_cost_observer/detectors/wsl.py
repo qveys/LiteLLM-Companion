@@ -97,16 +97,19 @@ class WSLDetector:
         stopped = self._running_tools - currently_running
 
         for tool_name, distro in sorted(started):
-            labels = self._build_labels(tool_name, distro)
-            self.telemetry.cli_running.add(1, labels)
             logger.info("Detected AI tool in WSL/{}: {}", distro, tool_name)
 
         for tool_name, distro in sorted(stopped):
-            labels = self._build_labels(tool_name, distro)
-            self.telemetry.cli_running.add(-1, labels)
             logger.info("AI tool stopped in WSL/{}: {}", distro, tool_name)
 
         self._running_tools = currently_running
+
+        # Build snapshot for ObservableGauge callback
+        snapshot = {
+            f"{tool_name}:wsl:{distro}": self._build_labels(tool_name, distro)
+            for tool_name, distro in currently_running
+        }
+        self.telemetry.set_running_wsl(snapshot)
 
     def _build_labels(self, tool_name: str, distro: str) -> dict[str, str]:
         tool_cfg = self._cli_names.get(tool_name, {})
