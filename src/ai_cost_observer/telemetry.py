@@ -84,7 +84,6 @@ class TelemetryManager:
         # --- Metric Instruments ---
         self.app_running = self.meter.create_observable_gauge(
             name="ai.app.running",
-            unit="1",
             callbacks=[self._observe_app_running],
         )
         self.app_active_duration = self.meter.create_counter(
@@ -117,7 +116,6 @@ class TelemetryManager:
         )
         self.cli_running = self.meter.create_observable_gauge(
             name="ai.cli.running",
-            unit="1",
             callbacks=[self._observe_cli_running],
         )
         self.cli_active_duration = self.meter.create_counter(
