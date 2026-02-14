@@ -4,10 +4,10 @@ services:
     restart: unless-stopped
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
-      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - ../files/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
     ports:
-      - "${OTLP_gRPC_PORT}:4317"   # OTLP gRPC — direct host port for remote agents
-      - "${OTLP_HTTP_PORT}:4318"   # OTLP HTTP — direct host port for remote agents
+      - "4317:4317"   # OTLP gRPC — direct host port for remote agents
+      - "4318:4318"   # OTLP HTTP — direct host port for remote agents
     environment:
       - OTEL_BEARER_TOKEN=${OTEL_BEARER_TOKEN}
     networks:
@@ -18,10 +18,10 @@ services:
     restart: unless-stopped
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=${STORAGE_RETENTION_TIME}"
+      - "--storage.tsdb.retention.time=30d"
       - "--web.enable-lifecycle"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../files/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     networks:
       - otel-net
@@ -31,12 +31,12 @@ services:
     restart: unless-stopped
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
-      - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED:-false}
-      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL}
-      - GF_INSTALL_PLUGINS=${GF_INSTALL_PLUGINS:-marcusolsson-treemap-panel,grafana-polystat-panel}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SERVER_ROOT_URL=https://grafana-otel.quentinveys.be
+      - GF_INSTALL_PLUGINS=marcusolsson-treemap-panel,grafana-polystat-panel
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ../files/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../files/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     networks:
       - otel-net
