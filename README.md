@@ -1,5 +1,11 @@
 # AI Cost Observer
 
+[![CI](https://github.com/qveys/LiteLLM-Companion/actions/workflows/ci.yml/badge.svg)](https://github.com/qveys/LiteLLM-Companion/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-370%20passing-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/coverage-80%25-yellowgreen.svg)]()
+
 A cross-platform (macOS/Windows) Python agent that tracks personal AI tool spending across desktop apps, browsers, and CLI tools. Metrics are shipped via OpenTelemetry to a centralized Prometheus + Grafana stack, providing unified cost visibility across all your devices.
 
 ## What it tracks
@@ -41,8 +47,8 @@ The Chrome extension sends data to the **local agent** (localhost:8080), which r
 ### 1. Install the agent
 
 ```bash
-git clone https://github.com/your-repo/opentelemetry.git
-cd opentelemetry
+git clone https://github.com/qveys/LiteLLM-Companion.git
+cd LiteLLM-Companion
 
 # Install with uv (recommended)
 uv sync
@@ -272,17 +278,17 @@ Safari requires Full Disk Access for history reading. Go to System Settings > Pr
 ## Development
 
 ```bash
-# Install dev dependencies (pytest, ruff, pytest-mock)
+# Install dev dependencies (pytest, ruff, pytest-mock, pytest-cov)
 uv sync --extra dev
 
-# Run all tests (281 tests)
-uv run python -m pytest
+# Run all tests (370 tests, 80% coverage)
+uv run python -m pytest --cov --cov-report=term-missing
 
 # Run single test file
 uv run python -m pytest tests/test_desktop.py -v
 
-# Lint
-uv run ruff check src/
+# Lint (0 errors enforced)
+uv run ruff check src/ tests/
 
 # Run agent
 uv run python -m ai_cost_observer
