@@ -2,7 +2,7 @@
 # Validate commit messages: <emoji> <conventional commit>
 #
 # Rules:
-#   1. Must start with an emoji (any emoji)
+#   1. Must start with a non-ASCII character (typically an emoji)
 #   2. Must follow Conventional Commits after the emoji
 #
 # Examples:
@@ -15,16 +15,22 @@ set -e
 MSG_FILE="$1"
 MSG=$(sed -n '1p' "$MSG_FILE")
 
+# Reject empty messages
+if [[ -z "$MSG" ]]; then
+    printf '❌ Commit message is empty.\n'
+    exit 1
+fi
+
 # Allow merge commits and reverts
-if printf '%s' "$MSG" | grep -qE "^(Merge |Revert )"; then
+if [[ "$MSG" =~ ^(Merge\ |Revert\ ) ]]; then
     exit 0
 fi
 
 TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 
-# Rule 1: Must start with a non-ASCII character (emoji)
-FIRST_BYTE=$(printf '%s' "$MSG" | head -c1 | LC_ALL=C od -An -tx1 | tr -d ' ')
-if [ "$((16#${FIRST_BYTE}))" -lt 128 ] 2>/dev/null; then
+# Rule 1: Must start with a non-ASCII character (typically an emoji)
+FIRST_BYTE=$(printf '%s' "$MSG" | LC_ALL=C head -c1 | od -An -tx1 | tr -d ' ')
+if [[ -z "$FIRST_BYTE" ]] || [[ "$((16#${FIRST_BYTE}))" -lt 128 ]]; then
     printf '❌ Commit message must start with an emoji.\n'
     printf '\n'
     printf '  Expected: <emoji> <type>[(<scope>)][!]: <description>\n'
@@ -32,8 +38,17 @@ if [ "$((16#${FIRST_BYTE}))" -lt 128 ] 2>/dev/null; then
     exit 1
 fi
 
-# Rule 2: Conventional Commits format after the emoji
-AFTER_EMOJI=$(printf '%s' "$MSG" | sed 's/^[^ ]* //')
+# Rule 2: Must have a space after the emoji
+AFTER_EMOJI="${MSG#* }"
+if [[ "$AFTER_EMOJI" == "$MSG" ]]; then
+    printf '❌ Commit message must have a space after the emoji.\n'
+    printf '\n'
+    printf '  Expected: <emoji> <type>[(<scope>)][!]: <description>\n'
+    printf '  Got:      %s\n' "$MSG"
+    exit 1
+fi
+
+# Rule 3: Conventional Commits format after the emoji
 if ! printf '%s' "$AFTER_EMOJI" | grep -qE "^($TYPES)(\([a-zA-Z0-9_./-]+\))?!?: .+"; then
     printf '❌ Commit message must follow Conventional Commits after the emoji.\n'
     printf '\n'

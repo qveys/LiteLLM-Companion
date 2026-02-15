@@ -20,19 +20,25 @@ jobs:
           TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
           ERRORS=0
           while IFS= read -r MSG; do
-            # Skip merge and revert commits
-            if printf '%s' "$MSG" | grep -qE "^(Merge |Revert )"; then
+            # Skip empty, merge, and revert commits
+            if [[ -z "$MSG" ]] || [[ "$MSG" =~ ^(Merge\ |Revert\ ) ]]; then
               continue
             fi
-            # Rule 1: Must start with emoji (non-ASCII first byte)
-            FIRST_BYTE=$(printf '%s' "$MSG" | head -c1 | LC_ALL=C od -An -tx1 | tr -d ' ')
-            if [ "$((16#${FIRST_BYTE}))" -lt 128 ] 2>/dev/null; then
+            # Rule 1: Must start with a non-ASCII character (typically an emoji)
+            FIRST_BYTE=$(printf '%s' "$MSG" | LC_ALL=C head -c1 | od -An -tx1 | tr -d ' ')
+            if [[ -z "$FIRST_BYTE" ]] || [[ "$((16#${FIRST_BYTE}))" -lt 128 ]]; then
               echo "::error::Missing emoji: $MSG"
               ERRORS=$((ERRORS + 1))
               continue
             fi
-            # Rule 2: Conventional Commits after emoji
-            AFTER_EMOJI=$(printf '%s' "$MSG" | sed 's/^[^ ]* //')
+            # Rule 2: Must have a space after the emoji
+            AFTER_EMOJI="${MSG#* }"
+            if [[ "$AFTER_EMOJI" == "$MSG" ]]; then
+              echo "::error::Missing space after emoji: $MSG (expected: <emoji> <type>[(<scope>)][!]: <description>)"
+              ERRORS=$((ERRORS + 1))
+              continue
+            fi
+            # Rule 3: Conventional Commits after emoji
             if ! printf '%s' "$AFTER_EMOJI" | grep -qE "^($TYPES)(\([a-zA-Z0-9_./-]+\))?!?: .+"; then
               echo "::error::Bad format: $MSG (expected: <emoji> <type>[(<scope>)][!]: <description>)"
               ERRORS=$((ERRORS + 1))

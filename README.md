@@ -278,6 +278,9 @@ Safari requires Full Disk Access for history reading. Go to System Settings > Pr
 ## Development
 
 ```bash
+# Setup git hooks (required once after clone)
+git config core.hooksPath .githooks
+
 # Install dev dependencies (pytest, ruff, pytest-mock, pytest-cov)
 uv sync --extra dev
 
