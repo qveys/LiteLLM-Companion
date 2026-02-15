@@ -24,21 +24,25 @@ jobs:
             if [[ -z "$MSG" ]] || [[ "$MSG" =~ ^(Merge\ |Revert\ ) ]]; then
               continue
             fi
-            # Rule 1: Must start with a non-ASCII character (typically an emoji)
-            FIRST_BYTE=$(printf '%s' "$MSG" | LC_ALL=C head -c1 | od -An -tx1 | tr -d ' ')
-            if [[ -z "$FIRST_BYTE" ]] || [[ "$((16#${FIRST_BYTE}))" -lt 128 ]]; then
-              echo "::error::Missing emoji: $MSG"
-              ERRORS=$((ERRORS + 1))
-              continue
+            # Rule 1: Must start with an emoji (Unicode or GitHub :shortcode:)
+            if [[ "$MSG" =~ ^:[a-z_]+:[[:space:]] ]]; then
+              # GitHub emoji shortcode (e.g., :arrow_up: ci: bump ...)
+              AFTER_EMOJI="${MSG#*: }"
+            else
+              FIRST_BYTE=$(printf '%s' "$MSG" | LC_ALL=C head -c1 | od -An -tx1 | tr -d ' ')
+              if [[ -z "$FIRST_BYTE" ]] || [[ "$((16#${FIRST_BYTE}))" -lt 128 ]]; then
+                echo "::error::Missing emoji: $MSG"
+                ERRORS=$((ERRORS + 1))
+                continue
+              fi
+              AFTER_EMOJI="${MSG#* }"
+              if [[ "$AFTER_EMOJI" == "$MSG" ]]; then
+                echo "::error::Missing space after emoji: $MSG (expected: <emoji> <type>[(<scope>)][!]: <description>)"
+                ERRORS=$((ERRORS + 1))
+                continue
+              fi
             fi
-            # Rule 2: Must have a space after the emoji
-            AFTER_EMOJI="${MSG#* }"
-            if [[ "$AFTER_EMOJI" == "$MSG" ]]; then
-              echo "::error::Missing space after emoji: $MSG (expected: <emoji> <type>[(<scope>)][!]: <description>)"
-              ERRORS=$((ERRORS + 1))
-              continue
-            fi
-            # Rule 3: Conventional Commits after emoji
+            # Rule 2: Conventional Commits after emoji
             if ! printf '%s' "$AFTER_EMOJI" | grep -qE "^($TYPES)(\([a-zA-Z0-9_./-]+\))?!?: .+"; then
               echo "::error::Bad format: $MSG (expected: <emoji> <type>[(<scope>)][!]: <description>)"
               ERRORS=$((ERRORS + 1))
