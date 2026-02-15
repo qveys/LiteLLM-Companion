@@ -33,9 +33,12 @@ fi
 echo "Python:   $PYTHON_PATH"
 
 # Unload if already running
-if launchctl list 2>/dev/null | grep -q "com.ai-cost-observer"; then
+SERVICE_NAME="${PLIST_NAME%.plist}"
+DOMAIN_TARGET="gui/$(id -u)"
+SERVICE_TARGET="$DOMAIN_TARGET/$SERVICE_NAME"
+if launchctl print "$SERVICE_TARGET" &>/dev/null; then
     echo "Stopping existing agent..."
-    launchctl unload "$PLIST_DST" 2>/dev/null || true
+    launchctl bootout "$SERVICE_TARGET" 2>/dev/null || true
 fi
 
 # Generate plist with absolute venv Python path
@@ -45,7 +48,7 @@ cat > "$PLIST_DST" <<PLIST
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.ai-cost-observer</string>
+    <string>${SERVICE_NAME}</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -86,11 +89,11 @@ PLIST
 
 echo "Installed $PLIST_DST"
 
-# Load and start
-launchctl load "$PLIST_DST"
+# Load and start (modern launchctl API, persists across reboots)
+launchctl bootstrap "$DOMAIN_TARGET" "$PLIST_DST"
 echo "Agent loaded and started."
 echo ""
-echo "Check status:  launchctl list | grep ai-cost"
+echo "Check status:  launchctl print $SERVICE_TARGET"
 echo "View logs:     tail -f /tmp/ai-cost-observer.stderr.log"
-echo "Stop:          launchctl unload $PLIST_DST"
+echo "Stop:          launchctl bootout $SERVICE_TARGET"
 echo "Uninstall:     bash $SCRIPT_DIR/uninstall-macos.sh"
