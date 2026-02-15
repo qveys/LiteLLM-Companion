@@ -123,7 +123,7 @@ jobs:
                 let inUse = true;
                 try {
                   const result = await github.rest.search.issuesAndPullRequests({
-                    q: `repo:${owner}/${repo} is:open label:"${name}"`,
+                    q: `repo:${owner}/${repo} label:"${name}"`,
                     per_page: 1,
                   });
                   inUse = result.data.total_count > 0;
@@ -297,12 +297,11 @@ jobs:
                 });
                 core.info(`Updated drift issue #${driftIssue.number}`);
               } else {
-                const created = await github.rest.issues.create({
-                  owner, repo,
-                  title: driftTitle,
-                  body,
-                  labels: [driftLabel],
-                });
+                const issuePayload = { owner, repo, title: driftTitle, body };
+                if (currentMap.has(driftLabel) || desiredMap.has(driftLabel)) {
+                  issuePayload.labels = [driftLabel];
+                }
+                const created = await github.rest.issues.create(issuePayload);
                 core.info(`Created drift issue #${created.data.number}`);
               }
             }
