@@ -101,7 +101,7 @@
   color: "ffd180"
   description: "Performance improvements (runtime, bundle, latency)."
 - name: "🔒 Type: Security"
-  color: "d32f2f"
+  color: "880e4f"
   description: "Security fix or hardening change."
 - name: "🧹 Type: Chore"
   color: "cfd8dc"
