@@ -46,6 +46,7 @@ def _setup_logging(debug: bool = False) -> None:
         ),
         level="DEBUG" if debug else "INFO",
         colorize=True,
+        enqueue=True,
     )
 
     # Intercept all stdlib logging and route through loguru
