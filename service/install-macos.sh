@@ -6,6 +6,7 @@ PLIST_NAME="com.ai-cost-observer.plist"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLIST_DST="$HOME/Library/LaunchAgents/$PLIST_NAME"
+mkdir -p "$HOME/Library/LaunchAgents"
 
 # Check uv is available
 if ! command -v uv &>/dev/null; then
