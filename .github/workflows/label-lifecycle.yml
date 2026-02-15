@@ -60,15 +60,15 @@ jobs:
               const t = (text || '').toLowerCase();
               if (/\b(bug|error|crash|fail|broken|regression)\b/.test(t)) return '🐞 Type: Bug';
               if (/\b(feature|implement|new capability)\b/.test(t)) return '🚀 Type: Feature';
-              if (/\b(enhancement|improve|minor|tweak|small)\b/.test(t)) return '✨ Type: Enhancement';
+              if (/\b(security|vuln|cve|xss|injection)\b/.test(t)) return '🔒 Type: Security';
               if (/\b(build|workflow|pipeline|ci|github action|release)\b/.test(t)) return '🏗️ Type: Build';
               if (/\b(doc|readme|documentation|guide)\b/.test(t)) return '📚 Type: Documentation';
               if (/\b(test|spec|coverage|e2e|unit|pytest)\b/.test(t)) return '🧪 Type: Test';
               if (/\b(deps|dependency|bump)\b/.test(t)) return '📦 Type: Dependency';
-              if (/\b(chore|cleanup|housekeeping)\b/.test(t)) return '🧹 Type: Chore';
               if (/\b(refactor|restructure|rename)\b/.test(t)) return '🧼 Type: Refactor';
               if (/\b(perf|performance|latency|optimize|slow)\b/.test(t)) return '⚡ Type: Performance';
-              if (/\b(security|vuln|cve|xss|injection)\b/.test(t)) return '🔒 Type: Security';
+              if (/\b(chore|cleanup|housekeeping)\b/.test(t)) return '🧹 Type: Chore';
+              if (/\b(enhancement|tweak)\b/.test(t)) return '✨ Type: Enhancement';
               return null;
             }
 
