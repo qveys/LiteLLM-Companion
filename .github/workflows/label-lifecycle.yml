@@ -37,7 +37,6 @@ jobs:
             const preserveManualStatuses = new Set([
               '🚦 Status: Blocked',
               '🚦 Status: Needs Info',
-              '🚦 Status: Review Needed',
             ]);
 
             const terminalStatuses = new Set([
@@ -57,10 +56,6 @@ jobs:
               return labels.some((l) => l.includes(typeMarker));
             }
 
-            function hasAnyArea(labels) {
-              return labels.some((l) => l.includes(' Area:'));
-            }
-
             function pickTypeFromText(text) {
               const t = (text || '').toLowerCase();
               if (/\b(bug|error|crash|fail|broken|regression)\b/.test(t)) return '🐞 Type: Bug';
@@ -74,22 +69,6 @@ jobs:
               if (/\b(refactor|restructure|rename)\b/.test(t)) return '🧼 Type: Refactor';
               if (/\b(perf|performance|latency|optimize|slow)\b/.test(t)) return '⚡ Type: Performance';
               if (/\b(security|vuln|cve|xss|injection)\b/.test(t)) return '🔒 Type: Security';
-              return null;
-            }
-
-            function pickAreaFromText(text) {
-              const t = (text || '').toLowerCase();
-              if (/\b(workflow|pipeline|github action|lint)\b/.test(t)) return '🧩 Area: CI';
-              if (/\b(detector|desktop|browser history|shell history|token tracker|wsl|active window)\b/.test(t)) return '🧩 Area: Detector';
-              if (/\b(telemetry|opentelemetry|otlp|exporter)\b/.test(t)) return '🧩 Area: Telemetry';
-              if (/\b(chrome extension|browser extension|manifest v3)\b/.test(t)) return '🧩 Area: Extension';
-              if (/\b(infra|docker|prometheus|grafana|compose|vps)\b/.test(t)) return '🧩 Area: Infra';
-              if (/\b(configuration|yaml|settings)\b/.test(t)) return '🧩 Area: Config';
-              if (/\b(flask|receiver)\b/.test(t)) return '🧩 Area: Server';
-              if (/\b(core|engine|runtime)\b/.test(t)) return '🧩 Area: Core';
-              if (/\b(tests|testing|unittest|integration test)\b/.test(t)) return '🧪 Area: Tests';
-              if (/\b(docs|documentation|readme|guide|manual)\b/.test(t)) return '📝 Area: Docs';
-              if (/\b(python|pyproject\.toml|pip|poetry)\b/.test(t)) return '🐍 Area: Python';
               return null;
             }
 
@@ -172,7 +151,7 @@ jobs:
             }
 
             // ── triage: auto-label on open/edit ──
-            // Note: PR area labeling from changed files is handled by auto-label.yml
+            // Note: Area labeling is handled entirely by auto-label.yml
             // (actions/labeler) using .github/labeler.yml as single source of truth.
 
             async function applyTriage(issue_number, { isPR, title, body, changedFiles, labels }) {
@@ -187,11 +166,6 @@ jobs:
 
               if (!hasAnyPrefix(currentLabels, statusPrefix) && existingLabels.has('🚦 Status: Open')) {
                 labelsToAdd.push('🚦 Status: Open');
-              }
-
-              if (!hasAnyArea(currentLabels)) {
-                const area = pickAreaFromText(`${title}\n${body || ''}`);
-                if (area && existingLabels.has(area)) labelsToAdd.push(area);
               }
 
               if (!hasAnyType(currentLabels)) {
