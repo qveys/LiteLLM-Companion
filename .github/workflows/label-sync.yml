@@ -90,7 +90,7 @@ jobs:
 
             const knownPatterns = [
               '🚦 Status:', '🔥 Priority:', '⏱️ Effort:',
-              ' Type:', '🧩 Area:', '🧪 Area:', '📝 Area:', '🐍 Area:',
+              ' Type:', ' Area:',
               '🎯 Detector:', '🧷 Meta:', '🗺️ Roadmap:', '🤖 AC:',
             ];
 
@@ -204,7 +204,7 @@ jobs:
               lines.push('| Label | Color | Description |');
               lines.push('|-------|-------|-------------|');
               for (const l of missing) {
-                lines.push(`| ${l.name} | \`#${l.color}\` | ${l.description} |`);
+                lines.push(`| ${escPipe(l.name)} | \`#${l.color}\` | ${escPipe(l.description)} |`);
               }
               lines.push('');
             }
