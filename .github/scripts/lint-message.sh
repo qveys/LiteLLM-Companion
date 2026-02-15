@@ -19,7 +19,8 @@ fi
 TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 
 # Rule 1: Must start with an emoji (Unicode or GitHub :shortcode:)
-if [[ "$MSG" =~ ^:[a-z0-9_+-]+:[[:space:]] ]]; then
+SHORTCODE_RE='^:[a-z0-9_+-]+: '
+if [[ "$MSG" =~ $SHORTCODE_RE ]]; then
     # GitHub emoji shortcode (e.g., :arrow_up: ci: bump ...)
     AFTER_EMOJI="${MSG#*: }"
 elif [[ "$MSG" =~ ^:[a-z0-9_+-]+: ]]; then
