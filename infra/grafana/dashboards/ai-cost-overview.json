@@ -52,54 +52,6 @@
         "regex": "",
         "skipUrlSync": false,
         "sort": 1
-      },
-      {
-        "name": "interval",
-        "type": "custom",
-        "query": "1h,6h,12h,1d,7d,30d",
-        "current": {
-          "selected": true,
-          "text": "1d",
-          "value": "1d"
-        },
-        "options": [
-          {
-            "selected": false,
-            "text": "1h",
-            "value": "1h"
-          },
-          {
-            "selected": false,
-            "text": "6h",
-            "value": "6h"
-          },
-          {
-            "selected": false,
-            "text": "12h",
-            "value": "12h"
-          },
-          {
-            "selected": true,
-            "text": "1d",
-            "value": "1d"
-          },
-          {
-            "selected": false,
-            "text": "7d",
-            "value": "7d"
-          },
-          {
-            "selected": false,
-            "text": "30d",
-            "value": "30d"
-          }
-        ],
-        "hide": 0,
-        "includeAll": false,
-        "multi": false,
-        "label": "Interval",
-        "refresh": 0,
-        "skipUrlSync": false
       }
     ]
   },
@@ -603,7 +555,7 @@
     {
       "id": 7,
       "title": "Cost Breakdown by Source",
-      "description": "Pie chart showing estimated cost distribution across Desktop Apps, Browser Domains, and CLI Tools over the selected interval.",
+      "description": "Pie chart showing estimated cost distribution across Desktop Apps, Browser Domains, and CLI Tools over the selected time range.",
       "type": "piechart",
       "datasource": {
         "type": "prometheus",
@@ -622,7 +574,7 @@
             "type": "prometheus",
             "uid": "prometheus-vps"
           },
-          "expr": "sum(increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum(increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "Desktop Apps",
           "instant": true
         },
@@ -632,7 +584,7 @@
             "type": "prometheus",
             "uid": "prometheus-vps"
           },
-          "expr": "sum(increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum(increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "Browser Domains",
           "instant": true
         },
@@ -642,7 +594,7 @@
             "type": "prometheus",
             "uid": "prometheus-vps"
           },
-          "expr": "sum(increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum(increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "CLI Tools",
           "instant": true
         }
