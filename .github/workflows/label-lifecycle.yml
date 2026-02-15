@@ -37,6 +37,7 @@ jobs:
             const preserveManualStatuses = new Set([
               '🚦 Status: Blocked',
               '🚦 Status: Needs Info',
+              '🚦 Status: Review Needed',
             ]);
 
             const terminalStatuses = new Set([
@@ -85,6 +86,10 @@ jobs:
               if (/\b(infra|docker|prometheus|grafana|compose|vps)\b/.test(t)) return '🧩 Area: Infra';
               if (/\b(configuration|yaml|settings)\b/.test(t)) return '🧩 Area: Config';
               if (/\b(flask|receiver)\b/.test(t)) return '🧩 Area: Server';
+              if (/\b(core|engine|runtime)\b/.test(t)) return '🧩 Area: Core';
+              if (/\b(tests|testing|unittest|integration test)\b/.test(t)) return '🧪 Area: Tests';
+              if (/\b(docs|documentation|readme|guide|manual)\b/.test(t)) return '📝 Area: Docs';
+              if (/\b(python|pyproject\.toml|pip|poetry)\b/.test(t)) return '🐍 Area: Python';
               return null;
             }
 
@@ -186,6 +191,7 @@ jobs:
               const hasCI        = names.some((f) => f.startsWith('.github/'));
               const hasDocs      = names.some((f) => f.startsWith('docs/'));
               const hasTests     = names.some((f) => f.startsWith('tests/'));
+              const hasCore      = names.some((f) => f.endsWith('main.py') || f.endsWith('__main__.py'));
 
               if (hasDetector)  return '🧩 Area: Detector';
               if (hasTelemetry) return '🧩 Area: Telemetry';
@@ -193,6 +199,7 @@ jobs:
               if (hasInfra)     return '🧩 Area: Infra';
               if (hasServer)    return '🧩 Area: Server';
               if (hasConfig)    return '🧩 Area: Config';
+              if (hasCore)      return '🧩 Area: Core';
               if (hasCI)        return '🧩 Area: CI';
               if (hasDocs)      return '📝 Area: Docs';
               if (hasTests)     return '🧪 Area: Tests';
