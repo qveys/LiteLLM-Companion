@@ -6,9 +6,10 @@ PLIST_NAME="com.ai-cost-observer.plist"
 PLIST_DST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 
 # Unload if running
-if launchctl list | grep -q "com.ai-cost-observer"; then
+SERVICE_TARGET="gui/$(id -u)/com.ai-cost-observer"
+if launchctl print "$SERVICE_TARGET" &>/dev/null; then
     echo "Stopping agent..."
-    launchctl unload "$PLIST_DST" 2>/dev/null || true
+    launchctl bootout "$SERVICE_TARGET" 2>/dev/null || true
 fi
 
 # Remove plist
