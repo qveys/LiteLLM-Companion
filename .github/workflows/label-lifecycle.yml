@@ -57,15 +57,20 @@ jobs:
               return labels.some((l) => l.includes(typeMarker));
             }
 
+            function hasAnyArea(labels) {
+              return labels.some((l) => l.includes(' Area:'));
+            }
+
             function pickTypeFromText(text) {
               const t = (text || '').toLowerCase();
-              if (/\b(bug|error|crash|fail|broken|regression|fix)\b/.test(t)) return '🐞 Type: Bug';
-              if (/\b(feature|enhancement|implement|add|new capability)\b/.test(t)) return '🚀 Type: Feature';
-              if (/\b(improve|minor|tweak|small)\b/.test(t)) return '✨ Type: Enhancement';
+              if (/\b(bug|error|crash|fail|broken|regression)\b/.test(t)) return '🐞 Type: Bug';
+              if (/\b(feature|implement|new capability)\b/.test(t)) return '🚀 Type: Feature';
+              if (/\b(enhancement|improve|minor|tweak|small)\b/.test(t)) return '✨ Type: Enhancement';
               if (/\b(build|workflow|pipeline|ci|github action|release)\b/.test(t)) return '🏗️ Type: Build';
               if (/\b(doc|readme|documentation|guide)\b/.test(t)) return '📚 Type: Documentation';
               if (/\b(test|spec|coverage|e2e|unit|pytest)\b/.test(t)) return '🧪 Type: Test';
-              if (/\b(chore|cleanup|housekeeping|deps|dependency|bump)\b/.test(t)) return '🧹 Type: Chore';
+              if (/\b(deps|dependency|bump)\b/.test(t)) return '📦 Type: Dependency';
+              if (/\b(chore|cleanup|housekeeping)\b/.test(t)) return '🧹 Type: Chore';
               if (/\b(refactor|restructure|rename)\b/.test(t)) return '🧼 Type: Refactor';
               if (/\b(perf|performance|latency|optimize|slow)\b/.test(t)) return '⚡ Type: Performance';
               if (/\b(security|vuln|cve|xss|injection)\b/.test(t)) return '🔒 Type: Security';
@@ -74,13 +79,13 @@ jobs:
 
             function pickAreaFromText(text) {
               const t = (text || '').toLowerCase();
-              if (/(ci|workflow|pipeline|github action|lint)/.test(t)) return '🧩 Area: CI';
-              if (/(detector|desktop|browser history|cli|shell history|token tracker|wsl|active window)/.test(t)) return '🧩 Area: Detector';
-              if (/(telemetry|otel|opentelemetry|metric|otlp|collector|exporter)/.test(t)) return '🧩 Area: Telemetry';
-              if (/(chrome extension|browser extension|manifest v3)/.test(t)) return '🧩 Area: Extension';
-              if (/(infra|docker|prometheus|grafana|compose|vps)/.test(t)) return '🧩 Area: Infra';
-              if (/(config|configuration|yaml|settings)/.test(t)) return '🧩 Area: Config';
-              if (/(server|http|flask|receiver)/.test(t)) return '🧩 Area: Server';
+              if (/\b(workflow|pipeline|github action|lint)\b/.test(t)) return '🧩 Area: CI';
+              if (/\b(detector|desktop|browser history|shell history|token tracker|wsl|active window)\b/.test(t)) return '🧩 Area: Detector';
+              if (/\b(telemetry|opentelemetry|otlp|exporter)\b/.test(t)) return '🧩 Area: Telemetry';
+              if (/\b(chrome extension|browser extension|manifest v3)\b/.test(t)) return '🧩 Area: Extension';
+              if (/\b(infra|docker|prometheus|grafana|compose|vps)\b/.test(t)) return '🧩 Area: Infra';
+              if (/\b(configuration|yaml|settings)\b/.test(t)) return '🧩 Area: Config';
+              if (/\b(flask|receiver)\b/.test(t)) return '🧩 Area: Server';
               return null;
             }
 
@@ -206,7 +211,7 @@ jobs:
                 labelsToAdd.push('🚦 Status: Open');
               }
 
-              if (!hasAnyPrefix(currentLabels, areaPrefix)) {
+              if (!hasAnyArea(currentLabels)) {
                 let area = null;
                 if (isPR) area = await inferAreaFromPRFiles(issue_number);
                 if (!area) area = pickAreaFromText(`${title}\n${body || ''}`);
@@ -273,7 +278,7 @@ jobs:
                 }
                 if (action === 'closed') {
                   if (hasTerminalStatus) return null;
-                  const merged = Boolean(context.payload.pull_request.merged);
+                  const merged = Boolean(context.payload.pull_request?.merged);
                   return merged
                     ? { status: '🚦 Status: Fixed', force: true }
                     : { status: '🚦 Status: On Hold', force: true };
@@ -329,13 +334,18 @@ jobs:
             const existingLabels = await getExistingLabelSet();
             const event = context.eventName;
             const action = context.payload.action;
-            const isForkPR = Boolean(
-              context.payload.pull_request?.head?.repo?.full_name &&
-                context.payload.pull_request?.base?.repo?.full_name &&
-                context.payload.pull_request.head.repo.full_name !== context.payload.pull_request.base.repo.full_name
-            );
 
-            if (isForkPR && (event === 'pull_request' || event === 'pull_request_review')) {
+            let isForkPR = false;
+            if (context.payload.pull_request?.head?.repo?.full_name && context.payload.pull_request?.base?.repo?.full_name) {
+              isForkPR = context.payload.pull_request.head.repo.full_name !== context.payload.pull_request.base.repo.full_name;
+            } else if (event === 'issue_comment' && context.payload.issue?.pull_request) {
+              const pr = await getPull(context.payload.issue.number);
+              if (pr?.head?.repo?.full_name && pr?.base?.repo?.full_name) {
+                isForkPR = pr.head.repo.full_name !== pr.base.repo.full_name;
+              }
+            }
+
+            if (isForkPR && (event === 'pull_request' || event === 'pull_request_review' || (event === 'issue_comment' && context.payload.issue?.pull_request))) {
               core.info('Skip label lifecycle for fork pull requests (read-only token context).');
               return;
             }

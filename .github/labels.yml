@@ -29,7 +29,7 @@
   color: "e53935"
   description: "Blocked by a dependency or external constraint."
 - name: "🚦 Status: Fixed"
-  color: "0e8a16"
+  color: "2e7d32"
   description: "Issue resolved; fix is implemented and verified."
 - name: "🚦 Status: Needs Info"
   color: "ff8a65"
@@ -47,7 +47,7 @@
   color: "ba68c8"
   description: "Migration underway; incremental work in progress."
 - name: "🚦 Status: Won't Fix"
-  color: "ffffff"
+  color: "e0e0e0"
   description: "Will not be worked on (by design or decision)."
 
 # Priority labels
@@ -141,13 +141,13 @@
 
 # Area labels (non-🧩 prefix)
 - name: "🧪 Area: Tests"
-  color: "BFD4F2"
+  color: "bfd4f2"
   description: "Test files"
 - name: "📝 Area: Docs"
-  color: "C5DEF5"
+  color: "c5def5"
   description: "Documentation"
 - name: "🐍 Area: Python"
-  color: "3572A5"
+  color: "3572a5"
   description: "Python source code"
 
 # Detector-specific labels
@@ -175,7 +175,7 @@
   color: "7e57c2"
   description: "Good entry point for newcomers."
 - name: "🧷 Meta: Help Wanted"
-  color: "26a69a"
+  color: "008672"
   description: "Extra attention or external help needed."
 - name: "🧷 Meta: Needs Discussion"
   color: "f06292"
