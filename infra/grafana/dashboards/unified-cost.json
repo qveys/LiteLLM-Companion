@@ -44,19 +44,6 @@
         },
         "sort": 1,
         "label": "Host"
-      },
-      {
-        "name": "interval",
-        "type": "custom",
-        "query": "1h,6h,12h,1d,7d,30d",
-        "current": {
-          "selected": true,
-          "text": "1d",
-          "value": "1d"
-        },
-        "includeAll": false,
-        "multi": false,
-        "label": "Interval"
       }
     ]
   },
@@ -64,7 +51,7 @@
     {
       "id": 1,
       "title": "Total Cost",
-      "description": "Sum of all AI tool costs (desktop + browser + CLI) over the selected interval.",
+      "description": "Sum of all AI tool costs (desktop + browser + CLI) over the selected time range.",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -79,7 +66,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$interval])) or vector(0)) + (sum(increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$interval])) or vector(0)) + (sum(increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$interval])) or vector(0))",
+          "expr": "sum(increase({__name__=~\"ai_(app|browser_domain|cli)_estimated_cost_USD_total\",host_name=~\"$host\"}[$__range])) or vector(0)",
           "legendFormat": "Total Cost",
           "instant": true
         }
@@ -150,7 +137,7 @@
     {
       "id": 2,
       "title": "Desktop Cost",
-      "description": "Total cost from desktop AI applications over the selected interval.",
+      "description": "Total cost from desktop AI applications over the selected time range.",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -165,7 +152,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum(increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "Desktop Cost",
           "instant": true
         }
@@ -232,7 +219,7 @@
     {
       "id": 3,
       "title": "Browser Cost",
-      "description": "Total cost from browser-based AI domains over the selected interval.",
+      "description": "Total cost from browser-based AI domains over the selected time range.",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -247,7 +234,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum(increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "Browser Cost",
           "instant": true
         }
@@ -314,7 +301,7 @@
     {
       "id": 4,
       "title": "CLI Cost",
-      "description": "Total cost from CLI AI tools over the selected interval.",
+      "description": "Total cost from CLI AI tools over the selected time range.",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -329,7 +316,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum(increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "CLI Cost",
           "instant": true
         }
@@ -411,19 +398,19 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum(increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "Desktop",
           "instant": true
         },
         {
           "refId": "B",
-          "expr": "sum(increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum(increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "Browser",
           "instant": true
         },
         {
           "refId": "C",
-          "expr": "sum(increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum(increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "CLI",
           "instant": true
         }
@@ -754,19 +741,19 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (app_name) (increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum by (app_name) (increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "{{app_name}}",
           "instant": true
         },
         {
           "refId": "B",
-          "expr": "sum by (ai_domain) (increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum by (ai_domain) (increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "{{ai_domain}}",
           "instant": true
         },
         {
           "refId": "C",
-          "expr": "sum by (cli_name) (increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$interval]))",
+          "expr": "sum by (cli_name) (increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$__range]))",
           "legendFormat": "{{cli_name}}",
           "instant": true
         }
@@ -822,7 +809,7 @@
     {
       "id": 8,
       "title": "Cost Breakdown",
-      "description": "Detailed table listing all individual apps, browser domains, and CLI tools with their respective costs over the selected interval.",
+      "description": "Detailed table listing all individual apps, browser domains, and CLI tools with their respective costs over the selected time range.",
       "type": "table",
       "datasource": {
         "type": "prometheus",
@@ -837,21 +824,21 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (app_name) (increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$interval])) > 0",
+          "expr": "sum by (app_name) (increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$__range])) > 0",
           "legendFormat": "",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "B",
-          "expr": "sum by (ai_domain) (increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$interval])) > 0",
+          "expr": "sum by (ai_domain) (increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$__range])) > 0",
           "legendFormat": "",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "C",
-          "expr": "sum by (cli_name) (increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$interval])) > 0",
+          "expr": "sum by (cli_name) (increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$__range])) > 0",
           "legendFormat": "",
           "instant": true,
           "format": "table"
@@ -980,7 +967,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_tokens_cost_usd_total{host_name=~\"$host\"}[$interval])) or vector(0)",
+          "expr": "sum(increase(ai_tokens_cost_usd_total{host_name=~\"$host\"}[$__range])) or vector(0)",
           "legendFormat": "Token Cost",
           "instant": true
         }
@@ -1023,7 +1010,7 @@
     {
       "id": 10,
       "title": "Input Tokens",
-      "description": "Total input tokens consumed across all AI tools over the selected interval.",
+      "description": "Total input tokens consumed across all AI tools over the selected time range.",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -1033,7 +1020,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_tokens_input_total{host_name=~\"$host\"}[$interval])) or vector(0)",
+          "expr": "sum(increase(ai_tokens_input_total{host_name=~\"$host\"}[$__range])) or vector(0)",
           "legendFormat": "Input Tokens",
           "instant": true
         }
@@ -1066,7 +1053,7 @@
     {
       "id": 11,
       "title": "Output Tokens",
-      "description": "Total output tokens generated by all AI tools over the selected interval.",
+      "description": "Total output tokens generated by all AI tools over the selected time range.",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -1076,7 +1063,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_tokens_output_total{host_name=~\"$host\"}[$interval])) or vector(0)",
+          "expr": "sum(increase(ai_tokens_output_total{host_name=~\"$host\"}[$__range])) or vector(0)",
           "legendFormat": "Output Tokens",
           "instant": true
         }
@@ -1109,7 +1096,7 @@
     {
       "id": 12,
       "title": "Prompts",
-      "description": "Total number of prompts sent to AI tools over the selected interval.",
+      "description": "Total number of prompts sent to AI tools over the selected time range.",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -1119,7 +1106,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_prompt_count_total{host_name=~\"$host\"}[$interval])) or vector(0)",
+          "expr": "sum(increase(ai_prompt_count_total{host_name=~\"$host\"}[$__range])) or vector(0)",
           "legendFormat": "Prompts",
           "instant": true
         }

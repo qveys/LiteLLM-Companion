@@ -61,19 +61,6 @@
         },
         "sort": 1,
         "label": "Tool"
-      },
-      {
-        "name": "interval",
-        "type": "custom",
-        "query": "1h,6h,12h,1d,7d,30d",
-        "current": {
-          "selected": true,
-          "text": "1d",
-          "value": "1d"
-        },
-        "includeAll": false,
-        "multi": false,
-        "label": "Interval"
       }
     ]
   },
@@ -91,7 +78,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_tokens_cost_usd_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) or vector(0)",
+          "expr": "sum(increase(ai_tokens_cost_usd_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) or vector(0)",
           "legendFormat": "Token Cost",
           "instant": true
         }
@@ -136,7 +123,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_tokens_input_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) or vector(0)",
+          "expr": "sum(increase(ai_tokens_input_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) or vector(0)",
           "legendFormat": "Input Tokens",
           "instant": true
         }
@@ -171,7 +158,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_tokens_output_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) or vector(0)",
+          "expr": "sum(increase(ai_tokens_output_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) or vector(0)",
           "legendFormat": "Output Tokens",
           "instant": true
         }
@@ -206,7 +193,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(ai_prompt_count_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) or vector(0)",
+          "expr": "sum(increase(ai_prompt_count_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) or vector(0)",
           "legendFormat": "Prompts",
           "instant": true
         }
@@ -305,7 +292,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (tool_name) (increase(ai_tokens_cost_usd_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) > 0",
+          "expr": "sum by (tool_name) (increase(ai_tokens_cost_usd_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) > 0",
           "legendFormat": "{{tool_name}}",
           "instant": true,
           "format": "table"
@@ -439,13 +426,13 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (model_name) (increase(ai_tokens_input_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) > 0",
+          "expr": "sum by (model_name) (increase(ai_tokens_input_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) > 0",
           "legendFormat": "{{model_name}} (input)",
           "instant": true
         },
         {
           "refId": "B",
-          "expr": "sum by (model_name) (increase(ai_tokens_output_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) > 0",
+          "expr": "sum by (model_name) (increase(ai_tokens_output_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) > 0",
           "legendFormat": "{{model_name}} (output)",
           "instant": true
         }
@@ -550,21 +537,21 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (tool_name, model_name) (increase(ai_tokens_input_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) > 0",
+          "expr": "sum by (tool_name, model_name) (increase(ai_tokens_input_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) > 0",
           "legendFormat": "",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "B",
-          "expr": "sum by (tool_name, model_name) (increase(ai_tokens_output_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) > 0",
+          "expr": "sum by (tool_name, model_name) (increase(ai_tokens_output_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) > 0",
           "legendFormat": "",
           "instant": true,
           "format": "table"
         },
         {
           "refId": "C",
-          "expr": "sum by (tool_name, model_name) (increase(ai_tokens_cost_usd_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$interval])) > 0",
+          "expr": "sum by (tool_name, model_name) (increase(ai_tokens_cost_usd_total{host_name=~\"$host\", tool_name=~\"$tool\"}[$__range])) > 0",
           "legendFormat": "",
           "instant": true,
           "format": "table"
