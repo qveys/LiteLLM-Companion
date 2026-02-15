@@ -33,8 +33,9 @@ fi
 echo "Python:   $PYTHON_PATH"
 
 # Unload if already running
+SERVICE_NAME="${PLIST_NAME%.plist}"
 DOMAIN_TARGET="gui/$(id -u)"
-SERVICE_TARGET="$DOMAIN_TARGET/com.ai-cost-observer"
+SERVICE_TARGET="$DOMAIN_TARGET/$SERVICE_NAME"
 if launchctl print "$SERVICE_TARGET" &>/dev/null; then
     echo "Stopping existing agent..."
     launchctl bootout "$SERVICE_TARGET" 2>/dev/null || true
@@ -47,7 +48,7 @@ cat > "$PLIST_DST" <<PLIST
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.ai-cost-observer</string>
+    <string>${SERVICE_NAME}</string>
 
     <key>ProgramArguments</key>
     <array>
