@@ -44,6 +44,15 @@ jobs:
           NEW_TITLE=$(gh pr view "$PR_NUMBER" --json title -q .title)
           .github/scripts/lint-message.sh "$NEW_TITLE"
 
+      - name: Final PR title validation
+        if: always() && steps.lint.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          CURRENT_TITLE=$(gh pr view "$PR_NUMBER" --json title -q .title)
+          .github/scripts/lint-message.sh "$CURRENT_TITLE"
+
   commit-lint:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

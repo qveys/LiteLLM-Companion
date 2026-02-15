@@ -229,16 +229,17 @@ jobs:
                 if (action === 'closed') {
                   if (hasTerminalStatus) return null;
                   const merged = Boolean(context.payload.pull_request?.merged);
+                  // Closed-not-merged = abandoned/superseded, not "on hold"
                   return merged
                     ? { status: '🚦 Status: Fixed', force: true }
-                    : { status: '🚦 Status: On Hold', force: true };
+                    : { status: "🚦 Status: Won't Fix", force: true };
                 }
               }
 
               if (event === 'pull_request_review' && action === 'submitted') {
                 const state = (context.payload.review.state || '').toLowerCase();
-                if (state === 'changes_requested') return { status: '🚦 Status: In Progress', force: true };
-                if (state === 'approved') return { status: '🚦 Status: Ready', force: true };
+                if (state === 'changes_requested') return { status: '🚦 Status: In Progress', force: false };
+                if (state === 'approved') return { status: '🚦 Status: Ready', force: false };
                 if (state === 'commented') return null;
                 return { status: '🚦 Status: Review Needed', force: false };
               }
