@@ -171,42 +171,9 @@ jobs:
               core.info(`Set status on #${issue_number}: ${desiredStatus}`);
             }
 
-            // ── area inference from PR changed files ──
-
-            async function inferAreaFromPRFiles(prNumber) {
-              const files = await github.paginate(github.rest.pulls.listFiles, {
-                owner,
-                repo,
-                pull_number: prNumber,
-                per_page: 100,
-              });
-              const names = files.map((f) => f.filename);
-
-              const hasDetector  = names.some((f) => f.includes('/detectors/'));
-              const hasTelemetry = names.some((f) => f.includes('telemetry.py') || f.includes('/exporters/'));
-              const hasExtension = names.some((f) => f.startsWith('chrome-extension/'));
-              const hasInfra     = names.some((f) => f.startsWith('infra/') || f.startsWith('docker-compose') || f.startsWith('Dockerfile'));
-              const hasServer    = names.some((f) => f.includes('/server/'));
-              const hasConfig    = names.some((f) => f.includes('/data/') || f.includes('config.py'));
-              const hasCI        = names.some((f) => f.startsWith('.github/'));
-              const hasDocs      = names.some((f) => f.startsWith('docs/'));
-              const hasTests     = names.some((f) => f.startsWith('tests/'));
-              const hasCore      = names.some((f) => f.endsWith('main.py') || f.endsWith('__main__.py'));
-
-              if (hasDetector)  return '🧩 Area: Detector';
-              if (hasTelemetry) return '🧩 Area: Telemetry';
-              if (hasExtension) return '🧩 Area: Extension';
-              if (hasInfra)     return '🧩 Area: Infra';
-              if (hasServer)    return '🧩 Area: Server';
-              if (hasConfig)    return '🧩 Area: Config';
-              if (hasCore)      return '🧩 Area: Core';
-              if (hasCI)        return '🧩 Area: CI';
-              if (hasDocs)      return '📝 Area: Docs';
-              if (hasTests)     return '🧪 Area: Tests';
-              return null;
-            }
-
             // ── triage: auto-label on open/edit ──
+            // Note: PR area labeling from changed files is handled by auto-label.yml
+            // (actions/labeler) using .github/labeler.yml as single source of truth.
 
             async function applyTriage(issue_number, { isPR, title, body, changedFiles, labels }) {
               let currentLabels;
@@ -223,9 +190,7 @@ jobs:
               }
 
               if (!hasAnyArea(currentLabels)) {
-                let area = null;
-                if (isPR) area = await inferAreaFromPRFiles(issue_number);
-                if (!area) area = pickAreaFromText(`${title}\n${body || ''}`);
+                const area = pickAreaFromText(`${title}\n${body || ''}`);
                 if (area && existingLabels.has(area)) labelsToAdd.push(area);
               }
 
@@ -298,8 +263,8 @@ jobs:
 
               if (event === 'pull_request_review' && action === 'submitted') {
                 const state = (context.payload.review.state || '').toLowerCase();
-                if (state === 'changes_requested') return { status: '🚦 Status: In Progress', force: false };
-                if (state === 'approved') return { status: '🚦 Status: Ready', force: false };
+                if (state === 'changes_requested') return { status: '🚦 Status: In Progress', force: true };
+                if (state === 'approved') return { status: '🚦 Status: Ready', force: true };
                 if (state === 'commented') return null;
                 return { status: '🚦 Status: Review Needed', force: false };
               }

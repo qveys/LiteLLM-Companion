@@ -255,39 +255,43 @@ jobs:
 
             await core.summary.addRaw(lines.join('\n')).write();
 
-            // ── manage drift issue ──
+            // ── drift issue helpers ──
 
             const driftTitle = 'Label drift detected';
             const driftLabel = '🧩 Area: CI';
 
-            if (mode === 'report-only' && !hasDrift) {
+            async function findOpenDriftIssue() {
               const existing = await github.rest.issues.listForRepo({
                 owner, repo,
                 state: 'open',
                 labels: driftLabel,
                 per_page: 100,
               });
-              const driftIssue = existing.data.find((i) => i.title === driftTitle);
+              return existing.data.find((i) => i.title === driftTitle);
+            }
+
+            async function closeDriftIssue(issue) {
+              await github.rest.issues.update({
+                owner, repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+            }
+
+            // ── manage drift issue ──
+
+            if (mode === 'report-only' && !hasDrift) {
+              const driftIssue = await findOpenDriftIssue();
               if (driftIssue) {
-                await github.rest.issues.update({
-                  owner, repo,
-                  issue_number: driftIssue.number,
-                  state: 'closed',
-                  state_reason: 'completed',
-                });
+                await closeDriftIssue(driftIssue);
                 core.info(`Closed resolved drift issue #${driftIssue.number}`);
               }
             }
 
             if (mode === 'report-only' && hasDrift) {
               const body = lines.join('\n');
-              const existing = await github.rest.issues.listForRepo({
-                owner, repo,
-                state: 'open',
-                labels: driftLabel,
-                per_page: 100,
-              });
-              const driftIssue = existing.data.find((i) => i.title === driftTitle);
+              const driftIssue = await findOpenDriftIssue();
 
               if (driftIssue) {
                 await github.rest.issues.update({
@@ -307,20 +311,9 @@ jobs:
             }
 
             if (mode === 'auto-fix') {
-              const existing = await github.rest.issues.listForRepo({
-                owner, repo,
-                state: 'open',
-                labels: driftLabel,
-                per_page: 100,
-              });
-              const driftIssue = existing.data.find((i) => i.title === driftTitle);
+              const driftIssue = await findOpenDriftIssue();
               if (driftIssue) {
-                await github.rest.issues.update({
-                  owner, repo,
-                  issue_number: driftIssue.number,
-                  state: 'closed',
-                  state_reason: 'completed',
-                });
+                await closeDriftIssue(driftIssue);
                 core.info(`Closed stale drift issue #${driftIssue.number}`);
               }
             }
