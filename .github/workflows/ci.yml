@@ -25,9 +25,13 @@ jobs:
               continue
             fi
             # Rule 1: Must start with an emoji (Unicode or GitHub :shortcode:)
-            if [[ "$MSG" =~ ^:[a-z_]+:[[:space:]] ]]; then
+            if [[ "$MSG" =~ ^:[a-z0-9_+-]+:[[:space:]] ]]; then
               # GitHub emoji shortcode (e.g., :arrow_up: ci: bump ...)
               AFTER_EMOJI="${MSG#*: }"
+            elif [[ "$MSG" =~ ^:[a-z0-9_+-]+: ]]; then
+              echo "::error::Missing space after emoji: $MSG (expected: <emoji> <type>[(<scope>)][!]: <description>)"
+              ERRORS=$((ERRORS + 1))
+              continue
             else
               FIRST_BYTE=$(printf '%s' "$MSG" | LC_ALL=C head -c1 | od -An -tx1 | tr -d ' ')
               if [[ -z "$FIRST_BYTE" ]] || [[ "$((16#${FIRST_BYTE}))" -lt 128 ]]; then
