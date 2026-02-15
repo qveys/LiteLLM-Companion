@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # Validate commit messages: <emoji> <conventional commit>
 #
-# Rules:
-#   1. Must start with an emoji (Unicode or GitHub :shortcode:)
-#   2. Must follow Conventional Commits after the emoji
-#
 # Examples:
 #   🐛 fix(telemetry): remove unit from gauges
 #   ✨ feat: add LiteLLM integration
@@ -12,58 +8,7 @@
 #   💥 feat!: breaking change
 set -e
 
-MSG_FILE="$1"
-MSG=$(sed -n '1p' "$MSG_FILE")
+SCRIPT_DIR="$(cd "$(dirname "$0")" && cd ../.github/scripts && pwd)"
+MSG=$(sed -n '1p' "$1")
 
-# Reject empty messages
-if [[ -z "$MSG" ]]; then
-    printf '❌ Commit message is empty.\n'
-    exit 1
-fi
-
-# Allow merge commits and reverts
-if [[ "$MSG" =~ ^(Merge\ |Revert\ ) ]]; then
-    exit 0
-fi
-
-TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
-
-# Rule 1: Must start with an emoji (Unicode or GitHub :shortcode:)
-if [[ "$MSG" =~ ^:[a-z0-9_+-]+:[[:space:]] ]]; then
-    # GitHub emoji shortcode (e.g., :arrow_up: ci: bump ...)
-    AFTER_EMOJI="${MSG#*: }"
-elif [[ "$MSG" =~ ^:[a-z0-9_+-]+: ]]; then
-    printf '❌ Commit message must have a space after the emoji.\n'
-    printf '\n'
-    printf '  Expected: <emoji> <type>[(<scope>)][!]: <description>\n'
-    printf '  Got:      %s\n' "$MSG"
-    exit 1
-else
-    FIRST_BYTE=$(printf '%s' "$MSG" | LC_ALL=C head -c1 | od -An -tx1 | tr -d ' ')
-    if [[ -z "$FIRST_BYTE" ]] || [[ "$((16#${FIRST_BYTE}))" -lt 128 ]]; then
-        printf '❌ Commit message must start with an emoji.\n'
-        printf '\n'
-        printf '  Expected: <emoji> <type>[(<scope>)][!]: <description>\n'
-        printf '  Got:      %s\n' "$MSG"
-        exit 1
-    fi
-    AFTER_EMOJI="${MSG#* }"
-    if [[ "$AFTER_EMOJI" == "$MSG" ]]; then
-        printf '❌ Commit message must have a space after the emoji.\n'
-        printf '\n'
-        printf '  Expected: <emoji> <type>[(<scope>)][!]: <description>\n'
-        printf '  Got:      %s\n' "$MSG"
-        exit 1
-    fi
-fi
-
-# Rule 2: Conventional Commits format after the emoji
-if ! printf '%s' "$AFTER_EMOJI" | grep -qE "^($TYPES)(\([a-zA-Z0-9_./-]+\))?!?: .+"; then
-    printf '❌ Commit message must follow Conventional Commits after the emoji.\n'
-    printf '\n'
-    printf '  Expected: <emoji> <type>[(<scope>)][!]: <description>\n'
-    printf '  Got:      %s\n' "$MSG"
-    printf '\n'
-    printf '  Types: %s\n' "$TYPES"
-    exit 1
-fi
+exec "$SCRIPT_DIR/lint-message.sh" "$MSG"
