@@ -5,8 +5,20 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, edited, synchronize, reopened]
 
 jobs:
+  pr-title-lint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: .github/scripts/lint-message.sh "$PR_TITLE"
+
   commit-lint:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -17,38 +29,16 @@ jobs:
 
       - name: Validate commit messages
         run: |
-          TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
           ERRORS=0
           while IFS= read -r MSG; do
-            # Skip empty, merge, and revert commits
-            if [[ -z "$MSG" ]] || [[ "$MSG" =~ ^(Merge\ |Revert\ ) ]]; then
-              continue
-            fi
-            # Rule 1: Must start with a non-ASCII character (typically an emoji)
-            FIRST_BYTE=$(printf '%s' "$MSG" | LC_ALL=C head -c1 | od -An -tx1 | tr -d ' ')
-            if [[ -z "$FIRST_BYTE" ]] || [[ "$((16#${FIRST_BYTE}))" -lt 128 ]]; then
-              echo "::error::Missing emoji: $MSG"
-              ERRORS=$((ERRORS + 1))
-              continue
-            fi
-            # Rule 2: Must have a space after the emoji
-            AFTER_EMOJI="${MSG#* }"
-            if [[ "$AFTER_EMOJI" == "$MSG" ]]; then
-              echo "::error::Missing space after emoji: $MSG (expected: <emoji> <type>[(<scope>)][!]: <description>)"
-              ERRORS=$((ERRORS + 1))
-              continue
-            fi
-            # Rule 3: Conventional Commits after emoji
-            if ! printf '%s' "$AFTER_EMOJI" | grep -qE "^($TYPES)(\([a-zA-Z0-9_./-]+\))?!?: .+"; then
-              echo "::error::Bad format: $MSG (expected: <emoji> <type>[(<scope>)][!]: <description>)"
+            if [[ -z "$MSG" ]]; then continue; fi
+            if ! .github/scripts/lint-message.sh "$MSG" 2>&1; then
               ERRORS=$((ERRORS + 1))
             fi
           done < <(git log --format='%s' "${{ github.event.pull_request.base.sha }}..HEAD")
           if [ "$ERRORS" -gt 0 ]; then
             echo ""
             echo "❌ $ERRORS commit(s) have invalid messages."
-            echo "   Expected: <emoji> <type>[(<scope>)][!]: <description>"
-            echo "   Types: $TYPES"
             exit 1
           fi
           echo "✅ All commit messages valid."
