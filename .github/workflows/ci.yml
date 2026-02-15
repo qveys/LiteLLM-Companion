@@ -11,13 +11,28 @@ jobs:
   pr-title-lint:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
       - name: Validate PR title
+        id: lint
+        continue-on-error: true
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: .github/scripts/lint-message.sh "$PR_TITLE"
+
+      - name: Auto-fix PR title
+        if: steps.lint.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          .github/scripts/fix-pr-title.sh "$PR_NUMBER"
+          # Re-validate after fix
+          NEW_TITLE=$(gh pr view "$PR_NUMBER" --json title -q .title)
+          .github/scripts/lint-message.sh "$NEW_TITLE"
 
   commit-lint:
     if: github.event_name == 'pull_request'
