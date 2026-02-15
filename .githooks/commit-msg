@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Validate commit messages: <emoji> <conventional commit>
+#
+# Rules:
+#   1. Must start with an emoji (any emoji)
+#   2. Must follow Conventional Commits after the emoji
+#
+# Examples:
+#   🐛 fix(telemetry): remove unit from gauges
+#   ✨ feat: add LiteLLM integration
+#   🔧 chore(ci): update workflow
+#   💥 feat!: breaking change
+set -e
+
+MSG_FILE="$1"
+MSG=$(sed -n '1p' "$MSG_FILE")
+
+# Allow merge commits and reverts
+if printf '%s' "$MSG" | grep -qE "^(Merge |Revert )"; then
+    exit 0
+fi
+
+TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+
+# Rule 1: Must start with a non-ASCII character (emoji)
+FIRST_BYTE=$(printf '%s' "$MSG" | head -c1 | LC_ALL=C od -An -tx1 | tr -d ' ')
+if [ "$((16#${FIRST_BYTE}))" -lt 128 ] 2>/dev/null; then
+    printf '❌ Commit message must start with an emoji.\n'
+    printf '\n'
+    printf '  Expected: <emoji> <type>[(<scope>)][!]: <description>\n'
+    printf '  Got:      %s\n' "$MSG"
+    exit 1
+fi
+
+# Rule 2: Conventional Commits format after the emoji
+AFTER_EMOJI=$(printf '%s' "$MSG" | sed 's/^[^ ]* //')
+if ! printf '%s' "$AFTER_EMOJI" | grep -qE "^($TYPES)(\([a-zA-Z0-9_./-]+\))?!?: .+"; then
+    printf '❌ Commit message must follow Conventional Commits after the emoji.\n'
+    printf '\n'
+    printf '  Expected: <emoji> <type>[(<scope>)][!]: <description>\n'
+    printf '  Got:      %s\n' "$MSG"
+    printf '\n'
+    printf '  Types: %s\n' "$TYPES"
+    exit 1
+fi

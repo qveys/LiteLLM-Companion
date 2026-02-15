@@ -7,6 +7,46 @@ on:
     branches: [main]
 
 jobs:
+  commit-lint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+          ERRORS=0
+          while IFS= read -r MSG; do
+            # Skip merge and revert commits
+            if printf '%s' "$MSG" | grep -qE "^(Merge |Revert )"; then
+              continue
+            fi
+            # Rule 1: Must start with emoji (non-ASCII first byte)
+            FIRST_BYTE=$(printf '%s' "$MSG" | head -c1 | LC_ALL=C od -An -tx1 | tr -d ' ')
+            if [ "$((16#${FIRST_BYTE}))" -lt 128 ] 2>/dev/null; then
+              echo "::error::Missing emoji: $MSG"
+              ERRORS=$((ERRORS + 1))
+              continue
+            fi
+            # Rule 2: Conventional Commits after emoji
+            AFTER_EMOJI=$(printf '%s' "$MSG" | sed 's/^[^ ]* //')
+            if ! printf '%s' "$AFTER_EMOJI" | grep -qE "^($TYPES)(\([a-zA-Z0-9_./-]+\))?!?: .+"; then
+              echo "::error::Bad format: $MSG (expected: <emoji> <type>[(<scope>)][!]: <description>)"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done < <(git log --format='%s' origin/main..HEAD)
+          if [ "$ERRORS" -gt 0 ]; then
+            echo ""
+            echo "❌ $ERRORS commit(s) have invalid messages."
+            echo "   Expected: <emoji> <type>[(<scope>)][!]: <description>"
+            echo "   Types: $TYPES"
+            exit 1
+          fi
+          echo "✅ All commit messages valid."
+
   lint:
     runs-on: ubuntu-latest
     steps:
