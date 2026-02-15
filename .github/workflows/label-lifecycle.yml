@@ -31,7 +31,6 @@ jobs:
             const repo = context.repo.repo;
 
             const statusPrefix = '🚦 Status:';
-            const areaPrefix = '🧩 Area:';
             const effortPrefix = '⏱️ Effort:';
             const typeMarker = ' Type:';
 
@@ -202,9 +201,14 @@ jobs:
 
             // ── triage: auto-label on open/edit ──
 
-            async function applyTriage(issue_number, { isPR, title, body, changedFiles }) {
-              const issue = await getIssue(issue_number);
-              const currentLabels = normalizeLabels(issue.labels);
+            async function applyTriage(issue_number, { isPR, title, body, changedFiles, labels }) {
+              let currentLabels;
+              if (labels && Array.isArray(labels)) {
+                currentLabels = normalizeLabels(labels);
+              } else {
+                const issue = await getIssue(issue_number);
+                currentLabels = normalizeLabels(issue.labels);
+              }
               const labelsToAdd = [];
 
               if (!hasAnyPrefix(currentLabels, statusPrefix) && existingLabels.has('🚦 Status: Open')) {
@@ -357,6 +361,7 @@ jobs:
                 title: issue.title,
                 body: issue.body,
                 changedFiles: 0,
+                labels: issue.labels,
               });
             }
 
@@ -367,6 +372,7 @@ jobs:
                 title: pr.title,
                 body: pr.body,
                 changedFiles: pr.changed_files || 0,
+                labels: pr.labels,
               });
             }
 
