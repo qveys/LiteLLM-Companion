@@ -66,7 +66,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(increase(ai_app_estimated_cost_USD_total{host_name=~\"$host\"}[$__range])) or vector(0)) + (sum(increase(ai_browser_domain_estimated_cost_USD_total{host_name=~\"$host\"}[$__range])) or vector(0)) + (sum(increase(ai_cli_estimated_cost_USD_total{host_name=~\"$host\"}[$__range])) or vector(0))",
+          "expr": "sum(increase({__name__=~\"ai_(app|browser_domain|cli)_estimated_cost_USD_total\",host_name=~\"$host\"}[$__range])) or vector(0)",
           "legendFormat": "Total Cost",
           "instant": true
         }
