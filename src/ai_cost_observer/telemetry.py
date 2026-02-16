@@ -80,6 +80,8 @@ class TelemetryManager:
         self._running_apps: dict[str, dict] = {}
         self._running_cli: dict[str, dict] = {}
         self._running_wsl: dict[str, dict] = {}
+        self._prev_running_apps: dict[str, dict] = {}
+        self._prev_running_cli: dict[str, dict] = {}
 
         # --- Metric Instruments ---
         self.app_running = self.meter.create_observable_gauge(
@@ -172,16 +174,27 @@ class TelemetryManager:
         self._running_wsl = dict(running)
 
     def _observe_app_running(self, options):
-        """ObservableGauge callback: yield one Observation per running app."""
+        """ObservableGauge callback: yield one Observation per running app.
+
+        Emits 0 for apps that were running last cycle but stopped, so
+        Prometheus drops the stale series instead of keeping the last value.
+        """
         for _name, labels in self._running_apps.items():
             yield Observation(1, labels)
+        for name, labels in self._prev_running_apps.items():
+            if name not in self._running_apps:
+                yield Observation(0, labels)
+        self._prev_running_apps = dict(self._running_apps)
 
     def _observe_cli_running(self, options):
         """ObservableGauge callback: yield one Observation per running CLI tool."""
-        for _name, labels in self._running_cli.items():
+        current = {**self._running_cli, **self._running_wsl}
+        for _name, labels in current.items():
             yield Observation(1, labels)
-        for _name, labels in self._running_wsl.items():
-            yield Observation(1, labels)
+        for name, labels in self._prev_running_cli.items():
+            if name not in current:
+                yield Observation(0, labels)
+        self._prev_running_cli = dict(current)
 
     def shutdown(self) -> None:
         """Flush pending metrics and shut down the provider."""
