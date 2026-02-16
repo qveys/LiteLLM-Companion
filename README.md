@@ -149,24 +149,12 @@ tail -f /tmp/ai-cost-observer.stderr.log
 
 ### Windows (Task Scheduler)
 
-Run PowerShell as Administrator:
+Right-click **Run as administrator** on `service\install-windows.cmd`. The script creates a venv, installs the package, and registers a scheduled task that runs at logon (windowless).
 
-```powershell
-.\service\install-windows.ps1
-```
-
-The agent runs at logon (windowless) and restarts up to 3 times on failure.
-
-```powershell
-# Start immediately
-Start-ScheduledTask -TaskName "AI Cost Observer"
-
-# Check status
-Get-ScheduledTask -TaskName "AI Cost Observer"
-
-# Remove
-.\service\uninstall-windows.ps1
-```
+- **Verify:** run `service\verify-windows.cmd` to check installation.
+- **Start now:** `schtasks /Run /TN "AI Cost Observer"`
+- **Status:** `schtasks /Query /TN "AI Cost Observer" /V /FO LIST`
+- **Remove:** run `service\uninstall-windows.cmd` or `schtasks /Delete /TN "AI Cost Observer" /F`
 
 ## Configuration
 

@@ -65,7 +65,7 @@ chrome-extension/               # Manifest V3
 service/                        # Installation daemon
   com.ai-cost-observer.plist    # macOS launchd
   install-macos.sh / uninstall
-  install-windows.ps1 / uninstall
+  install-windows.cmd / uninstall-windows.cmd / verify-windows.cmd
 
 tests/                          # 281 tests (28 fichiers)
 docs/                           # product-brief, architecture, stories
