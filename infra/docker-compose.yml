@@ -42,9 +42,20 @@ services:
       - otel-net
       - dokploy-network
 
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ../files/loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - otel-net
+
 volumes:
   prometheus-data:
   grafana-data:
+  loki-data:
 
 networks:
   otel-net:

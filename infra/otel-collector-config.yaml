@@ -32,6 +32,9 @@ exporters:
       enabled: true
     metric_expiration: 90m
 
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+
 service:
   extensions: [bearertokenauth]
   pipelines:
@@ -39,3 +42,7 @@ service:
       receivers: [otlp]
       processors: [batch, resource]
       exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [loki]
