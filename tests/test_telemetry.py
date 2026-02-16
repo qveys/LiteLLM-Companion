@@ -11,12 +11,13 @@ from ai_cost_observer.config import AppConfig
 class TestTelemetryInstruments:
     """Verify all metric instruments are created on the TelemetryManager."""
 
+    @patch("ai_cost_observer.telemetry.logger")
     @patch("ai_cost_observer.telemetry.metrics")
     @patch("ai_cost_observer.telemetry.MeterProvider")
     @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
     @patch("ai_cost_observer.telemetry.Resource")
     def test_telemetry_creates_all_instruments(
-        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
+        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics, _mock_logger
     ):
         """Verify all 16 metric instruments are created."""
         from ai_cost_observer.telemetry import TelemetryManager
@@ -55,12 +56,13 @@ class TestTelemetryInstruments:
         assert mock_meter.create_counter.call_count == 12
         assert mock_meter.create_gauge.call_count == 2  # cpu, memory (Bug C3: was Histogram)
 
+    @patch("ai_cost_observer.telemetry.logger")
     @patch("ai_cost_observer.telemetry.metrics")
     @patch("ai_cost_observer.telemetry.MeterProvider")
     @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
     @patch("ai_cost_observer.telemetry.Resource")
     def test_telemetry_resource_attributes(
-        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
+        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics, _mock_logger
     ):
         """Verify resource attributes: service.name, host.name, os.type, etc."""
         from ai_cost_observer import __version__
@@ -83,12 +85,13 @@ class TestTelemetryInstruments:
         assert resource_attrs["os.type"] == platform.system().lower()
         assert resource_attrs["deployment.environment"] == "personal"
 
+    @patch("ai_cost_observer.telemetry.logger")
     @patch("ai_cost_observer.telemetry.metrics")
     @patch("ai_cost_observer.telemetry.MeterProvider")
     @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
     @patch("ai_cost_observer.telemetry.Resource")
     def test_telemetry_shutdown(
-        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
+        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics, _mock_logger
     ):
         """Verify provider.shutdown() is called on TelemetryManager.shutdown()."""
         from ai_cost_observer.telemetry import TelemetryManager
@@ -104,12 +107,13 @@ class TestTelemetryInstruments:
 
         mock_provider.shutdown.assert_called_once()
 
+    @patch("ai_cost_observer.telemetry.logger")
     @patch("ai_cost_observer.telemetry.metrics")
     @patch("ai_cost_observer.telemetry.MeterProvider")
     @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
     @patch("ai_cost_observer.telemetry.Resource")
     def test_telemetry_with_injected_exporter(
-        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
+        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics, _mock_logger
     ):
         """Verify custom exporter is used when injected (not the default)."""
         from ai_cost_observer.telemetry import TelemetryManager
@@ -127,12 +131,13 @@ class TestTelemetryInstruments:
             export_interval_millis=config.scan_interval_seconds * 1000,
         )
 
+    @patch("ai_cost_observer.telemetry.logger")
     @patch("ai_cost_observer.telemetry.metrics")
     @patch("ai_cost_observer.telemetry.MeterProvider")
     @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
     @patch("ai_cost_observer.telemetry.Resource")
     def test_telemetry_grpc_exporter_selection(
-        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
+        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics, _mock_logger
     ):
         """Verify gRPC exporter is used by default when no exporter is injected."""
         from ai_cost_observer.telemetry import TelemetryManager
@@ -150,12 +155,13 @@ class TestTelemetryInstruments:
             mock_create.assert_called_once_with(config)
             assert tm.exporter is mock_grpc_exporter
 
+    @patch("ai_cost_observer.telemetry.logger")
     @patch("ai_cost_observer.telemetry.metrics")
     @patch("ai_cost_observer.telemetry.MeterProvider")
     @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
     @patch("ai_cost_observer.telemetry.Resource")
     def test_cpu_memory_are_gauges_not_histograms(
-        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
+        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics, _mock_logger
     ):
         """Bug C3: cpu.usage and memory.usage must be Gauges, not Histograms.
 
@@ -198,12 +204,13 @@ class TestTelemetryInstruments:
             "ai.app.memory.usage should NOT be a Histogram"
         )
 
+    @patch("ai_cost_observer.telemetry.logger")
     @patch("ai_cost_observer.telemetry.metrics")
     @patch("ai_cost_observer.telemetry.MeterProvider")
     @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
     @patch("ai_cost_observer.telemetry.Resource")
     def test_running_counters_are_observable_gauges(
-        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics
+        self, mock_resource, mock_reader_cls, mock_provider_cls, mock_metrics, _mock_logger
     ):
         """Bug H1: app_running and cli_running must be ObservableGauge, not UpDownCounter.
 
@@ -268,6 +275,7 @@ class TestTelemetryInstruments:
 class TestLogBridge:
     """Verify the loguru → OTel log bridge is wired up."""
 
+    @patch("ai_cost_observer.telemetry.logger")
     @patch("ai_cost_observer.telemetry.set_logger_provider")
     @patch("ai_cost_observer.telemetry.BatchLogRecordProcessor")
     @patch("ai_cost_observer.telemetry.LoggerProvider")
@@ -286,6 +294,7 @@ class TestLogBridge:
         mock_log_provider_cls,
         mock_batch_processor,
         mock_set_logger_provider,
+        _mock_logger,
     ):
         """LoggerProvider is created, registered, and receives a BatchLogRecordProcessor."""
         from ai_cost_observer.telemetry import TelemetryManager
@@ -338,6 +347,7 @@ class TestLogBridge:
             call_args = mock_loguru.add.call_args
             assert call_args[0][0] is mock_logging_handler.return_value
 
+    @patch("ai_cost_observer.telemetry.logger")
     @patch("ai_cost_observer.telemetry.set_logger_provider")
     @patch("ai_cost_observer.telemetry.BatchLogRecordProcessor")
     @patch("ai_cost_observer.telemetry.LoggerProvider")
@@ -356,6 +366,7 @@ class TestLogBridge:
         mock_log_provider_cls,
         mock_batch_processor,
         mock_set_logger_provider,
+        _mock_logger,
     ):
         """LoggerProvider is shut down alongside MeterProvider."""
         from ai_cost_observer.telemetry import TelemetryManager
