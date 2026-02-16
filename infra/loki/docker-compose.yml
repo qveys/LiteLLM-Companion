@@ -1,0 +1,22 @@
+# Standalone Loki compose for Dokploy.
+# Deploy as a separate compose in the same "OpenTelemetry" project.
+# Shares dokploy-network with the otel-stack compose so OTel Collector
+# reaches loki:3100 by service name.
+
+services:
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ../files/loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - dokploy-network
+
+volumes:
+  loki-data:
+
+networks:
+  dokploy-network:
+    external: true
