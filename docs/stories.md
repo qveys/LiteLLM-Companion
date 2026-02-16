@@ -237,7 +237,7 @@
 **Files:**
 - `service/com.ai-cost-observer.plist`
 - `service/install-macos.sh`
-- `service/install-windows.ps1`, `uninstall-windows.ps1`
+- `service/install-windows.cmd`, `uninstall-windows.cmd`, `verify-windows.cmd`
 - `README.md`
 
 **Acceptance criteria:**

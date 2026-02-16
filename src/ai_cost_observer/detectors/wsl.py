@@ -39,19 +39,25 @@ class WSLDetector:
             logger.opt(exception=True).debug("WSL scan failed")
 
     def _get_running_distros(self) -> list[str]:
-        """Get list of running WSL distributions."""
+        """Get list of running WSL distributions. On Windows, wsl.exe outputs UTF-16."""
         result = subprocess.run(
             ["wsl.exe", "--list", "--running", "--quiet"],
             capture_output=True,
-            text=True,
             timeout=10,
         )
         if result.returncode != 0:
             return []
-        return [d.strip() for d in result.stdout.strip().splitlines() if d.strip()]
+        # Windows: wsl.exe stdout is UTF-16LE; decode explicitly to avoid embedded nulls
+        try:
+            output = result.stdout.decode("utf-16-le", errors="replace").strip()
+        except Exception:
+            output = result.stdout.decode("utf-8", errors="replace").strip()
+        return [d.strip() for d in output.splitlines() if d.strip()]
 
     def _scan_distro(self, distro: str) -> set[tuple[str, str]]:
         """Scan a specific WSL distro for AI processes."""
+        if "\x00" in distro or not distro:
+            return set()
         try:
             result = subprocess.run(
                 ["wsl.exe", "-d", distro, "-e", "ps", "aux"],
