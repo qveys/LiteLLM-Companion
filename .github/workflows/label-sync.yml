@@ -1,0 +1,324 @@
+name: Label Sync
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/labels.yml"]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: label-sync-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  sync-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install js-yaml
+        run: npm install js-yaml@4.1.0 --no-save
+
+      - name: Sync labels from .github/labels.yml
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const yaml = require('js-yaml');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const isPush = context.eventName === 'push';
+            const mode = isPush ? 'auto-fix' : 'report-only';
+
+            core.info(`Mode: ${mode} (trigger: ${context.eventName})`);
+
+            // ── parse labels.yml ──
+
+            let desired;
+            try {
+              const raw = fs.readFileSync('.github/labels.yml', 'utf8');
+              desired = yaml.load(raw);
+              if (!Array.isArray(desired)) {
+                core.setFailed('labels.yml must be a YAML array of label objects.');
+                return;
+              }
+            } catch (err) {
+              core.setFailed(`Failed to parse labels.yml: ${err.message}`);
+              return;
+            }
+
+            const desiredMap = new Map();
+            for (const label of desired) {
+              if (!label.name) {
+                core.warning('Skipping label entry without a name.');
+                continue;
+              }
+              desiredMap.set(label.name, {
+                color: (label.color || '').replace(/^#/, ''),
+                description: label.description || '',
+              });
+            }
+
+            core.info(`Parsed ${desiredMap.size} labels from labels.yml`);
+
+            // ── fetch current labels ──
+
+            const currentLabels = await github.paginate(github.rest.issues.listLabelsForRepo, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const currentMap = new Map();
+            for (const label of currentLabels) {
+              currentMap.set(label.name, {
+                color: (label.color || '').replace(/^#/, ''),
+                description: label.description || '',
+              });
+            }
+
+            core.info(`Fetched ${currentMap.size} labels from GitHub`);
+
+            // ── convention patterns (substring matches via .includes()) ──
+
+            const knownPatterns = [
+              '🚦 Status:', '🔥 Priority:', '⏱️ Effort:',
+              ' Type:', ' Area:',
+              '🎯 Detector:', '🧷 Meta:', '🗺️ Roadmap:', '🤖 AC:',
+            ];
+
+            // ── classify ──
+
+            const missing = [];
+            const drifted = [];
+            const violations = [];
+
+            for (const [name, spec] of desiredMap) {
+              const current = currentMap.get(name);
+              if (!current) {
+                missing.push({ name, ...spec });
+              } else if (current.color !== spec.color || current.description !== spec.description) {
+                drifted.push({
+                  name,
+                  expected: spec,
+                  actual: current,
+                });
+              }
+
+              const matchesPrefix = knownPatterns.some((p) => name.includes(p));
+              if (!matchesPrefix) {
+                violations.push(name);
+              }
+            }
+
+            const orphansSafe = [];
+            const orphansInUse = [];
+
+            for (const [name] of currentMap) {
+              if (!desiredMap.has(name)) {
+                let inUse = true;
+                try {
+                  const result = await github.rest.search.issuesAndPullRequests({
+                    q: `repo:${owner}/${repo} label:"${name}"`,
+                    per_page: 1,
+                  });
+                  inUse = result.data.total_count > 0;
+                } catch (err) {
+                  core.warning(`Search failed for orphan "${name}", conservatively keeping: ${err.message}`);
+                  inUse = true;
+                }
+
+                if (inUse) {
+                  orphansInUse.push(name);
+                } else {
+                  orphansSafe.push(name);
+                }
+              }
+            }
+
+            core.info(`Missing: ${missing.length}, Drifted: ${drifted.length}, Orphans safe: ${orphansSafe.length}, Orphans in-use: ${orphansInUse.length}, Violations: ${violations.length}`);
+
+            // ── apply changes (auto-fix mode) ──
+
+            const applied = { created: 0, updated: 0, deleted: 0 };
+
+            if (mode === 'auto-fix') {
+              for (const label of missing) {
+                try {
+                  await github.rest.issues.createLabel({
+                    owner, repo,
+                    name: label.name,
+                    color: label.color,
+                    description: label.description,
+                  });
+                  applied.created++;
+                  core.info(`Created: ${label.name}`);
+                } catch (err) {
+                  core.warning(`Failed to create "${label.name}": ${err.message}`);
+                }
+              }
+
+              for (const item of drifted) {
+                try {
+                  await github.rest.issues.updateLabel({
+                    owner, repo,
+                    name: item.name,
+                    color: item.expected.color,
+                    description: item.expected.description,
+                  });
+                  applied.updated++;
+                  core.info(`Updated: ${item.name}`);
+                } catch (err) {
+                  core.warning(`Failed to update "${item.name}": ${err.message}`);
+                }
+              }
+
+              for (const name of orphansSafe) {
+                try {
+                  await github.rest.issues.deleteLabel({ owner, repo, name });
+                  applied.deleted++;
+                  core.info(`Deleted orphan: ${name}`);
+                } catch (err) {
+                  if (err.status !== 404) {
+                    core.warning(`Failed to delete "${name}": ${err.message}`);
+                  }
+                }
+              }
+
+              core.info(`Applied — created: ${applied.created}, updated: ${applied.updated}, deleted: ${applied.deleted}`);
+            }
+
+            // ── job summary ──
+
+            const lines = [`## Label Sync — ${mode}\n`];
+
+            if (missing.length > 0) {
+              lines.push(`### ${mode === 'auto-fix' ? 'Created' : 'Missing'} (${missing.length})\n`);
+              lines.push('| Label | Color | Description |');
+              lines.push('|-------|-------|-------------|');
+              for (const l of missing) {
+                lines.push(`| ${escPipe(l.name)} | \`#${l.color}\` | ${escPipe(l.description)} |`);
+              }
+              lines.push('');
+            }
+
+            function escPipe(text) {
+              return (text || '').replace(/\|/g, '\\|');
+            }
+
+            if (drifted.length > 0) {
+              lines.push(`### ${mode === 'auto-fix' ? 'Updated' : 'Drifted'} (${drifted.length})\n`);
+              lines.push('| Label | Field | Expected | Actual |');
+              lines.push('|-------|-------|----------|--------|');
+              for (const d of drifted) {
+                if (d.expected.color !== d.actual.color) {
+                  lines.push(`| ${escPipe(d.name)} | color | \`#${d.expected.color}\` | \`#${d.actual.color}\` |`);
+                }
+                if (d.expected.description !== d.actual.description) {
+                  lines.push(`| ${escPipe(d.name)} | description | ${escPipe(d.expected.description)} | ${escPipe(d.actual.description)} |`);
+                }
+              }
+              lines.push('');
+            }
+
+            if (orphansSafe.length > 0) {
+              lines.push(`### ${mode === 'auto-fix' ? 'Deleted orphans' : 'Orphans — safe to delete'} (${orphansSafe.length})\n`);
+              for (const name of orphansSafe) {
+                lines.push(`- ${name}`);
+              }
+              lines.push('');
+            }
+
+            if (orphansInUse.length > 0) {
+              lines.push(`### Orphans — in use (${orphansInUse.length})\n`);
+              lines.push('> These labels are on GitHub but not in `labels.yml`, and have open issues/PRs.\n');
+              for (const name of orphansInUse) {
+                lines.push(`- ${name}`);
+              }
+              lines.push('');
+            }
+
+            if (violations.length > 0) {
+              lines.push(`### Convention warnings (${violations.length})\n`);
+              lines.push('> Labels in `labels.yml` that don\'t match a known prefix.\n');
+              for (const name of violations) {
+                lines.push(`- ${name}`);
+              }
+              lines.push('');
+            }
+
+            const hasDrift = missing.length > 0 || drifted.length > 0 || orphansSafe.length > 0 || orphansInUse.length > 0;
+
+            if (!hasDrift && violations.length === 0) {
+              lines.push('All labels are in sync. No drift detected.');
+            }
+
+            await core.summary.addRaw(lines.join('\n')).write();
+
+            // ── drift issue helpers ──
+
+            const driftTitle = 'Label drift detected';
+            const driftLabel = '🧩 Area: CI';
+
+            async function findOpenDriftIssue() {
+              const q = `repo:${owner}/${repo} is:issue is:open label:"${driftLabel}" in:title "${driftTitle}"`;
+              const result = await github.rest.search.issuesAndPullRequests({ q, per_page: 10 });
+              return result.data.items.find(
+                (i) => i.title === driftTitle && i.labels.some((l) => l.name === driftLabel)
+              );
+            }
+
+            async function closeDriftIssue(issue) {
+              await github.rest.issues.update({
+                owner, repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+            }
+
+            // ── manage drift issue ──
+
+            if (mode === 'report-only' && !hasDrift) {
+              const driftIssue = await findOpenDriftIssue();
+              if (driftIssue) {
+                await closeDriftIssue(driftIssue);
+                core.info(`Closed resolved drift issue #${driftIssue.number}`);
+              }
+            }
+
+            if (mode === 'report-only' && hasDrift) {
+              const body = lines.join('\n');
+              const driftIssue = await findOpenDriftIssue();
+
+              if (driftIssue) {
+                await github.rest.issues.update({
+                  owner, repo,
+                  issue_number: driftIssue.number,
+                  body,
+                });
+                core.info(`Updated drift issue #${driftIssue.number}`);
+              } else {
+                const issuePayload = { owner, repo, title: driftTitle, body };
+                if (currentMap.has(driftLabel) || desiredMap.has(driftLabel)) {
+                  issuePayload.labels = [driftLabel];
+                }
+                const created = await github.rest.issues.create(issuePayload);
+                core.info(`Created drift issue #${created.data.number}`);
+              }
+            }
+
+            if (mode === 'auto-fix') {
+              const driftIssue = await findOpenDriftIssue();
+              if (driftIssue) {
+                await closeDriftIssue(driftIssue);
+                core.info(`Closed stale drift issue #${driftIssue.number}`);
+              }
+            }

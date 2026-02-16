@@ -11,13 +11,47 @@ jobs:
   pr-title-lint:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
 
       - name: Validate PR title
+        id: lint
+        continue-on-error: true
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: .github/scripts/lint-message.sh "$PR_TITLE"
+        run: |
+          OUTPUT=$(.github/scripts/lint-message.sh "$PR_TITLE" 2>&1) && exit 0 || true
+          echo "$OUTPUT" >&2
+          echo "lint_error<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Auto-fix PR title (missing gitmoji only)
+        if: >-
+          steps.lint.outcome == 'failure'
+          && contains(steps.lint.outputs.lint_error, 'Must start with an emoji')
+          && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          .github/scripts/fix-pr-title.sh "$PR_NUMBER"
+          # Re-validate after fix
+          NEW_TITLE=$(gh pr view "$PR_NUMBER" --json title -q .title)
+          .github/scripts/lint-message.sh "$NEW_TITLE"
+
+      - name: Final PR title validation
+        if: always() && steps.lint.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          CURRENT_TITLE=$(gh pr view "$PR_NUMBER" --json title -q .title)
+          .github/scripts/lint-message.sh "$CURRENT_TITLE"
 
   commit-lint:
     if: github.event_name == 'pull_request'

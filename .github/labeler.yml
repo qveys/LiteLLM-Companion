@@ -1,19 +1,59 @@
+# --- Area labels (🧩 prefix — canonical) ---
+
 "🧩 Area: Detector":
   - changed-files:
     - any-glob-to-any-file: "src/**/detectors/**"
 
-"⚙️ Area: Config":
+"🧩 Area: Telemetry":
   - changed-files:
-    - any-glob-to-any-file: "src/**/data/**"
+    - any-glob-to-any-file: "src/**/telemetry.py"
+
+"🧩 Area: Extension":
+  - changed-files:
+    - any-glob-to-any-file: "chrome-extension/**"
+
+"🧩 Area: Infra":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "infra/**"
+      - "docker-compose*.yml"
+      - "Dockerfile*"
+
+"🧩 Area: Config":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/**/config.py"
+      - "src/**/data/**"
+
+"🧩 Area: Server":
+  - changed-files:
+    - any-glob-to-any-file: "src/**/server/**"
+
+"🧩 Area: CI":
+  - changed-files:
+    - any-glob-to-any-file: ".github/**"
+
+"🧩 Area: Core":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/**/main.py"
+      - "src/**/__main__.py"
+
+# --- Area labels (non-🧩 prefix) ---
 
 "🧪 Area: Tests":
   - changed-files:
     - any-glob-to-any-file: "tests/**"
 
-"🔧 Area: CI/CD":
+"📝 Area: Docs":
   - changed-files:
-    - any-glob-to-any-file:
-      - ".github/**"
+    - any-glob-to-any-file: "docs/**"
+
+"🐍 Area: Python":
+  - changed-files:
+    - any-glob-to-any-file: "src/**/*.py"
+
+# --- Detector labels ---
 
 "🎯 Detector: Desktop":
   - changed-files:
@@ -27,17 +67,14 @@
   - changed-files:
     - any-glob-to-any-file: "src/**/detectors/browser_history*.py"
 
-"📝 Area: Docs":
+"🎯 Detector: Shell History":
   - changed-files:
-    - any-glob-to-any-file: "docs/**"
+    - any-glob-to-any-file: "src/**/detectors/shell_history*.py"
 
-"🐍 Area: Python":
+"🎯 Detector: Token Tracker":
   - changed-files:
-    - any-glob-to-any-file: "src/**/*.py"
+    - any-glob-to-any-file: "src/**/detectors/token_tracker*.py"
 
-"🐳 Area: Docker":
+"🎯 Detector: WSL":
   - changed-files:
-    - any-glob-to-any-file:
-      - "infra/**"
-      - "docker-compose*.yml"
-      - "Dockerfile*"
+    - any-glob-to-any-file: "src/**/detectors/wsl*.py"

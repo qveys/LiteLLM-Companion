@@ -1,0 +1,334 @@
+name: Label Lifecycle
+
+on:
+  issues:
+    types: [opened, reopened, edited, assigned, unassigned, closed]
+  pull_request:
+    types: [opened, reopened, edited, synchronize, review_requested, ready_for_review, converted_to_draft, closed]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: label-lifecycle-${{ github.repository }}-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  orchestrate-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply triage and status transitions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const statusPrefix = '🚦 Status:';
+            const effortPrefix = '⏱️ Effort:';
+            const typeMarker = ' Type:';
+
+            const preserveManualStatuses = new Set([
+              '🚦 Status: Blocked',
+              '🚦 Status: Needs Info',
+            ]);
+
+            const terminalStatuses = new Set([
+              '🚦 Status: Fixed',
+              '🚦 Status: Invalid',
+              '🚦 Status: Duplicate',
+              "🚦 Status: Won't Fix",
+            ]);
+
+            // ── helpers ──
+
+            function hasAnyPrefix(labels, prefix) {
+              return labels.some((l) => l.startsWith(prefix));
+            }
+
+            function hasAnyType(labels) {
+              return labels.some((l) => l.includes(typeMarker));
+            }
+
+            function pickTypeFromText(text) {
+              const t = (text || '').toLowerCase();
+              if (/\b(bug|error|crash|fail|broken|regression)\b/.test(t)) return '🐞 Type: Bug';
+              if (/\b(feature|implement|new capability)\b/.test(t)) return '🚀 Type: Feature';
+              if (/\b(security|vuln|cve|xss|injection)\b/.test(t)) return '🔒 Type: Security';
+              if (/\b(build|workflow|pipeline|ci|github action|release)\b/.test(t)) return '🏗️ Type: Build';
+              if (/\b(doc|readme|documentation|guide)\b/.test(t)) return '📚 Type: Documentation';
+              if (/\b(test|spec|coverage|e2e|unit|pytest)\b/.test(t)) return '🧪 Type: Test';
+              if (/\b(deps|dependency|bump)\b/.test(t)) return '📦 Type: Dependency';
+              if (/\b(refactor|restructure|rename)\b/.test(t)) return '🧼 Type: Refactor';
+              if (/\b(perf|performance|latency|optimize|slow)\b/.test(t)) return '⚡ Type: Performance';
+              if (/\b(chore|cleanup|housekeeping)\b/.test(t)) return '🧹 Type: Chore';
+              if (/\b(enhancement|tweak)\b/.test(t)) return '✨ Type: Enhancement';
+              return null;
+            }
+
+            function pickEffortFromChangedFiles(changedFiles) {
+              if (changedFiles <= 3) return '⏱️ Effort: Small';
+              if (changedFiles <= 15) return '⏱️ Effort: Medium';
+              if (changedFiles <= 60) return '⏱️ Effort: Large';
+              return '⏱️ Effort: X-Large';
+            }
+
+            // ── API wrappers ──
+
+            async function getExistingLabelSet() {
+              const labels = await github.paginate(github.rest.issues.listLabelsForRepo, {
+                owner,
+                repo,
+                per_page: 100,
+              });
+              return new Set(labels.map((l) => l.name));
+            }
+
+            async function getIssue(issue_number) {
+              const { data } = await github.rest.issues.get({ owner, repo, issue_number });
+              return data;
+            }
+
+            async function getPull(pull_number) {
+              const { data } = await github.rest.pulls.get({ owner, repo, pull_number });
+              return data;
+            }
+
+            function normalizeLabels(rawLabels) {
+              return rawLabels.map((l) => (typeof l === 'string' ? l : l.name));
+            }
+
+            async function addLabels(issue_number, labels) {
+              if (labels.length === 0) return;
+              await github.rest.issues.addLabels({ owner, repo, issue_number, labels });
+            }
+
+            // ── exclusive status setter ──
+
+            async function setExclusiveStatus(issue_number, desiredStatus, options = {}) {
+              const { force = false } = options;
+              if (!existingLabels.has(desiredStatus)) {
+                core.info(`Skip status '${desiredStatus}': label absent in repository.`);
+                return;
+              }
+
+              const issue = await getIssue(issue_number);
+              const currentLabels = normalizeLabels(issue.labels);
+              const currentStatusLabels = currentLabels.filter((l) => l.startsWith(statusPrefix));
+
+              if (!force) {
+                const hasPreserved = currentStatusLabels.some((l) => preserveManualStatuses.has(l));
+                if (hasPreserved && !terminalStatuses.has(desiredStatus)) {
+                  core.info(`Skip status change on #${issue_number}: preserved manual status.`);
+                  return;
+                }
+              }
+
+              for (const label of currentStatusLabels) {
+                if (label !== desiredStatus) {
+                  try {
+                    await github.rest.issues.removeLabel({ owner, repo, issue_number, name: label });
+                  } catch (err) {
+                    if (err.status !== 404) throw err;
+                    core.info(`Skip removing '${label}' on #${issue_number}: already absent.`);
+                  }
+                }
+              }
+
+              const latest = await getIssue(issue_number);
+              const latestLabels = normalizeLabels(latest.labels);
+              if (!latestLabels.includes(desiredStatus)) {
+                await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [desiredStatus] });
+              }
+
+              core.info(`Set status on #${issue_number}: ${desiredStatus}`);
+            }
+
+            // ── triage: auto-label on open/edit ──
+            // Note: Area labeling is handled entirely by auto-label.yml
+            // (actions/labeler) using .github/labeler.yml as single source of truth.
+
+            async function applyTriage(issue_number, { isPR, title, body, changedFiles, labels }) {
+              let currentLabels;
+              if (labels && Array.isArray(labels)) {
+                currentLabels = normalizeLabels(labels);
+              } else {
+                const issue = await getIssue(issue_number);
+                currentLabels = normalizeLabels(issue.labels);
+              }
+              const labelsToAdd = [];
+
+              if (!hasAnyPrefix(currentLabels, statusPrefix) && existingLabels.has('🚦 Status: Open')) {
+                labelsToAdd.push('🚦 Status: Open');
+              }
+
+              if (!hasAnyType(currentLabels)) {
+                const type = pickTypeFromText(`${title}\n${body || ''}`);
+                if (type && existingLabels.has(type)) labelsToAdd.push(type);
+              }
+
+              if (isPR && !hasAnyPrefix(currentLabels, effortPrefix)) {
+                const effort = pickEffortFromChangedFiles(changedFiles || 0);
+                if (existingLabels.has(effort)) labelsToAdd.push(effort);
+              }
+
+              const deduped = [...new Set(labelsToAdd)].filter((l) => existingLabels.has(l));
+              await addLabels(issue_number, deduped);
+              core.info(`Triage labels on #${issue_number}: ${deduped.join(', ') || '(none)'}`);
+            }
+
+            // ── status transitions based on event ──
+
+            function desiredStatusForEvent() {
+              const event = context.eventName;
+              const action = context.payload.action;
+              const payloadLabels =
+                event === 'issues'
+                  ? normalizeLabels(context.payload.issue?.labels || [])
+                  : event === 'pull_request' || event === 'pull_request_review'
+                  ? normalizeLabels(context.payload.pull_request?.labels || [])
+                  : [];
+              const currentStatusLabels = payloadLabels.filter((l) => l.startsWith(statusPrefix));
+              const hasTerminalStatus = currentStatusLabels.some((l) => terminalStatuses.has(l));
+
+              if (event === 'issues') {
+                if (action === 'opened' || action === 'reopened') return { status: '🚦 Status: Open', force: false };
+                if (action === 'assigned') return { status: '🚦 Status: In Progress', force: false };
+                if (action === 'unassigned') {
+                  const remainingAssignees = Array.isArray(context.payload.issue?.assignees)
+                    ? context.payload.issue.assignees.length
+                    : 0;
+                  if (remainingAssignees === 0) return { status: '🚦 Status: Open', force: false };
+                  return null;
+                }
+                if (action === 'closed') {
+                  if (hasTerminalStatus) return null;
+                  const reason = (context.payload.issue?.state_reason || '').toLowerCase();
+                  if (reason === 'not_planned') return { status: "🚦 Status: Won't Fix", force: true };
+                  if (reason === 'duplicate') return { status: '🚦 Status: Duplicate', force: true };
+                  return { status: '🚦 Status: Fixed', force: true };
+                }
+              }
+
+              if (event === 'pull_request') {
+                if (action === 'opened' || action === 'reopened') {
+                  const isDraft = Boolean(context.payload.pull_request?.draft);
+                  return { status: isDraft ? '🚦 Status: In Progress' : '🚦 Status: Open', force: false };
+                }
+                if (action === 'converted_to_draft') return { status: '🚦 Status: In Progress', force: false };
+                if (action === 'synchronize') return { status: '🚦 Status: In Progress', force: false };
+                if (action === 'review_requested' || action === 'ready_for_review') {
+                  return { status: '🚦 Status: Review Needed', force: false };
+                }
+                if (action === 'closed') {
+                  if (hasTerminalStatus) return null;
+                  const merged = Boolean(context.payload.pull_request?.merged);
+                  // Closed-not-merged = abandoned/superseded, not "on hold"
+                  return merged
+                    ? { status: '🚦 Status: Fixed', force: true }
+                    : { status: "🚦 Status: Won't Fix", force: true };
+                }
+              }
+
+              if (event === 'pull_request_review' && action === 'submitted') {
+                const state = (context.payload.review.state || '').toLowerCase();
+                if (state === 'changes_requested') return { status: '🚦 Status: In Progress', force: false };
+                if (state === 'approved') return { status: '🚦 Status: Ready', force: false };
+                if (state === 'commented') return null;
+                return { status: '🚦 Status: Review Needed', force: false };
+              }
+
+              return null;
+            }
+
+            // ── "Needs Info" auto-resolve when author comments ──
+
+            async function handleNeedsInfoResolutionByComment() {
+              if (context.eventName !== 'issue_comment' || context.payload.action !== 'created') return;
+
+              const issue_number = context.payload.issue.number;
+              const commentBody = (context.payload.comment?.body || '').trim();
+              if (!commentBody) return;
+
+              const issue = await getIssue(issue_number);
+              const labels = normalizeLabels(issue.labels);
+              if (!labels.includes('🚦 Status: Needs Info')) return;
+
+              const issueAuthor = issue.user?.login;
+              const commenter = context.payload.comment?.user?.login;
+              if (!issueAuthor || !commenter || issueAuthor !== commenter) {
+                core.info('Needs Info unchanged: comment is not from issue/PR author.');
+                return;
+              }
+
+              const isPR = Boolean(issue.pull_request);
+              const nextStatus = isPR ? '🚦 Status: Review Needed' : '🚦 Status: Open';
+              await setExclusiveStatus(issue_number, nextStatus, { force: true });
+            }
+
+            // ── main ──
+
+            function getIssueNumberFromEvent() {
+              if (context.eventName === 'issues') return context.payload.issue.number;
+              if (context.eventName === 'pull_request') return context.payload.pull_request.number;
+              if (context.eventName === 'pull_request_review') return context.payload.pull_request.number;
+              if (context.eventName === 'issue_comment') return context.payload.issue.number;
+              return null;
+            }
+
+            const existingLabels = await getExistingLabelSet();
+            const event = context.eventName;
+            const action = context.payload.action;
+
+            let isForkPR = false;
+            if (context.payload.pull_request?.head?.repo?.full_name && context.payload.pull_request?.base?.repo?.full_name) {
+              isForkPR = context.payload.pull_request.head.repo.full_name !== context.payload.pull_request.base.repo.full_name;
+            } else if (event === 'issue_comment' && context.payload.issue?.pull_request) {
+              const pr = await getPull(context.payload.issue.number);
+              if (pr?.head?.repo?.full_name && pr?.base?.repo?.full_name) {
+                isForkPR = pr.head.repo.full_name !== pr.base.repo.full_name;
+              }
+            }
+
+            if (isForkPR && (event === 'pull_request' || event === 'pull_request_review' || (event === 'issue_comment' && context.payload.issue?.pull_request))) {
+              core.info('Skip label lifecycle for fork pull requests (read-only token context).');
+              return;
+            }
+
+            if (event === 'issues' && ['opened', 'reopened', 'edited'].includes(action)) {
+              const issue = context.payload.issue;
+              await applyTriage(issue.number, {
+                isPR: false,
+                title: issue.title,
+                body: issue.body,
+                changedFiles: 0,
+                labels: issue.labels,
+              });
+            }
+
+            if (event === 'pull_request' && ['opened', 'reopened', 'edited'].includes(action)) {
+              const pr = await getPull(context.payload.pull_request.number);
+              await applyTriage(pr.number, {
+                isPR: true,
+                title: pr.title,
+                body: pr.body,
+                changedFiles: pr.changed_files || 0,
+                labels: pr.labels,
+              });
+            }
+
+            const issue_number = getIssueNumberFromEvent();
+            if (issue_number) {
+              const desired = desiredStatusForEvent();
+              if (desired) {
+                await setExclusiveStatus(issue_number, desired.status, { force: desired.force });
+              }
+            }
+
+            await handleNeedsInfoResolutionByComment();
