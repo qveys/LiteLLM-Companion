@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import platform
 from typing import Optional
 
 from loguru import logger
 from opentelemetry import metrics
+from opentelemetry._logs import set_logger_provider
 from opentelemetry.metrics import Observation
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import (
     MetricExporter,
@@ -49,6 +53,34 @@ def _create_exporter(config: AppConfig) -> MetricExporter:
     )
 
 
+def _create_log_exporter(config: AppConfig):
+    """Create an OTLP log exporter matching the metric exporter protocol."""
+    protocol = os.environ.get(
+        "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL",
+        os.environ.get("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"),
+    )
+
+    headers = {}
+    if config.otel_bearer_token:
+        headers["authorization"] = f"Bearer {config.otel_bearer_token}"
+
+    if protocol == "http/json":
+        from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+
+        return OTLPLogExporter(endpoint=config.otel_endpoint, headers=headers)
+
+    from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+
+    grpc_endpoint = (
+        config.otel_endpoint.replace("http://", "").replace("https://", "").split("/")[0]
+    )
+    return OTLPLogExporter(
+        endpoint=grpc_endpoint,
+        headers=tuple(headers.items()),
+        insecure=config.otel_insecure,
+    )
+
+
 class TelemetryManager:
     """Manages OTel SDK lifecycle and provides all metric instruments."""
 
@@ -73,6 +105,15 @@ class TelemetryManager:
         self.provider = MeterProvider(resource=self.resource, metric_readers=[self.reader])
         metrics.set_meter_provider(self.provider)
         self.meter = self.provider.get_meter("ai-cost-observer", __version__)
+
+        # --- Log pipeline: loguru → stdlib logging → OTel ---
+        log_exporter = _create_log_exporter(config)
+        self._log_provider = LoggerProvider(resource=self.resource)
+        self._log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+        set_logger_provider(self._log_provider)
+
+        otel_handler = LoggingHandler(level=logging.DEBUG, logger_provider=self._log_provider)
+        logger.add(otel_handler, level="INFO", format="{message}")
 
         # --- Snapshots for ObservableGauge callbacks (Bug H1) ---
         # Detectors write to these dicts; ObservableGauge callbacks read them.
@@ -199,5 +240,6 @@ class TelemetryManager:
     def shutdown(self) -> None:
         """Flush pending metrics and shut down the provider."""
         logger.info("Flushing metrics and shutting down OTel provider...")
+        self._log_provider.shutdown()
         self.provider.shutdown()
         logger.info("OTel provider shut down.")
