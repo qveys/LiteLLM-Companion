@@ -133,8 +133,14 @@ if %ERRORLEVEL% neq 0 (
 )
 echo [OK] ai_cost_observer imports correctly.
 
+:: Start agent now (like macOS: load and start)
 echo.
-echo Installation verified. Task "%TASK_NAME%" will start at next logon.
+echo Starting agent...
+schtasks /Run /TN "%TASK_NAME%" >nul 2>&1
+if %ERRORLEVEL% equ 0 (echo Agent started.) else (echo Could not start task; run manually: schtasks /Run /TN "%TASK_NAME%")
+
+echo.
+echo Installation verified. Task "%TASK_NAME%" will also start at next logon.
 echo Start now:    schtasks /Run /TN "%TASK_NAME%"
 echo Check status: schtasks /Query /TN "%TASK_NAME%" /V /FO LIST
 echo Remove:       schtasks /Delete /TN "%TASK_NAME%" /F

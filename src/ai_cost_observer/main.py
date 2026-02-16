@@ -142,6 +142,11 @@ def run() -> None:
         }
 
         http_thread = start_http_receiver(config, telemetry)
+        if http_thread is None:
+            logger.warning(
+                "HTTP receiver did not start (e.g. port %s in use). Extension will not connect.",
+                config.http_receiver_port,
+            )
         token_interval = tt_config.get("api_polling_interval_seconds", 300)
 
         background_threads = [

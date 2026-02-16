@@ -50,6 +50,17 @@ if exist "%VENV_DIR%\Scripts\python.exe" (
   echo [SKIP] python.exe missing, cannot test import.
 )
 
+:: Agent HTTP server reachable (default port 8080)
+set "AGENT_URL=http://127.0.0.1:8080/health"
+set "HTTP_CODE=0"
+for /f %%i in ('powershell -NoProfile -Command "try { (Invoke-WebRequest -Uri '%AGENT_URL%' -UseBasicParsing -TimeoutSec 3).StatusCode } catch { 0 }" 2^>nul') do set "HTTP_CODE=%%i"
+if "%HTTP_CODE%"=="200" (
+  echo [OK] Agent is running ^(HTTP 127.0.0.1:8080^).
+) else (
+  echo [FAIL] Agent not reachable at %AGENT_URL% — start with: schtasks /Run /TN "%TASK_NAME%"
+  set "ERR=1"
+)
+
 :: Task details (trigger + task to run)
 if %ERR% equ 0 (
   echo.

@@ -13,16 +13,12 @@ import yaml
 
 
 def _default_config_dir() -> Path:
-    if platform.system() == "Windows":
-        base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-        return base / "ai-cost-observer"
     return Path.home() / ".config" / "ai-cost-observer"
 
 
 def _default_state_dir() -> Path:
     if platform.system() == "Windows":
-        base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-        return base / "ai-cost-observer" / "state"
+        return Path.home() / ".config" / "ai-cost-observer" / "state"
     return Path.home() / ".local" / "state" / "ai-cost-observer"
 
 

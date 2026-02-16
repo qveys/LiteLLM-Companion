@@ -69,6 +69,17 @@ def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
     _rate_limiter = _RateLimiter()
 
     @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            from flask import make_response
+
+            r = make_response()
+            r.headers["Access-Control-Allow-Origin"] = "*"
+            r.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            r.headers["Access-Control-Allow-Headers"] = "Content-Type"
+            return r
+
+    @app.before_request
     def check_rate_limit_and_size():
         """Enforce rate limiting and payload size on all POST requests."""
         logger.debug("{} {} from {}", request.method, request.path, request.remote_addr)
@@ -79,6 +90,14 @@ def create_app(config: AppConfig, telemetry: TelemetryManager) -> Flask:
             if not _rate_limiter.is_allowed(client_ip):
                 logger.warning("Rate limit exceeded for {}", client_ip)
                 return jsonify({"error": "Rate limit exceeded"}), 429
+
+    @app.after_request
+    def cors_headers(response):
+        """Allow Chrome extension (and other local clients) to read responses."""
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
 
     @app.route("/", methods=["GET"])
     def root():
@@ -256,8 +275,8 @@ def start_http_receiver(config: AppConfig, telemetry: TelemetryManager) -> threa
             name="http-receiver",
         )
         thread.start()
-        logger.debug("HTTP receiver started on 127.0.0.1:{}", config.http_receiver_port)
+        logger.info("HTTP receiver listening on http://127.0.0.1:{}", config.http_receiver_port)
         return thread
     except Exception:
-        logger.opt(exception=True).error("Failed to start HTTP receiver")
+        logger.opt(exception=True).error("Failed to start HTTP receiver — Chrome extension will not be able to connect")
         return None

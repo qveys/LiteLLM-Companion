@@ -251,11 +251,11 @@ Safari requires Full Disk Access for history reading. Go to System Settings > Pr
 
 ### Chrome extension not connecting
 
-- Verify agent is running: open `http://127.0.0.1:8080` in your browser (should return JSON)
-- If the popup shows "Connection refused — is the agent running?", start the agent first
-- Check the extension settings (gear icon) point to the correct agent URL and port
-- Check extension permissions at `chrome://extensions/`
-- Look for errors in the extension service worker console (click "Inspect views: service worker" on the extensions page)
+- **Verify the agent HTTP receiver is up:** open `http://127.0.0.1:8080/health` in your browser (should return `{"status":"healthy"}`). Or run `curl http://127.0.0.1:8080/health` (Windows: `curl http://127.0.0.1:8080/health` in PowerShell/cmd).
+- If that fails, the agent may be running but the HTTP server did not start (e.g. port 8080 in use). Run the agent with `--debug` and look for **"HTTP receiver listening on http://127.0.0.1:8080"** at startup; if you see **"Failed to start HTTP receiver"** or **"HTTP receiver did not start"**, change or free port 8080 (see "Port 8080 already in use" above).
+- If the popup shows "Connection refused — is the agent running?", start the agent first (or fix the port).
+- Check the extension settings (gear icon) — agent URL must match (default `http://127.0.0.1:8080`).
+- Check extension permissions at `chrome://extensions/` and errors in the service worker console ("Inspect views: service worker").
 
 ### Metrics not appearing in Grafana
 
