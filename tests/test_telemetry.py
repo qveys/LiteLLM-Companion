@@ -263,3 +263,111 @@ class TestTelemetryInstruments:
                 endpoint="http://localhost:4318",
                 headers={"authorization": "Bearer test-token"},
             )
+
+
+class TestLogBridge:
+    """Verify the loguru → OTel log bridge is wired up."""
+
+    @patch("ai_cost_observer.telemetry.set_logger_provider")
+    @patch("ai_cost_observer.telemetry.BatchLogRecordProcessor")
+    @patch("ai_cost_observer.telemetry.LoggerProvider")
+    @patch("ai_cost_observer.telemetry.LoggingHandler")
+    @patch("ai_cost_observer.telemetry.metrics")
+    @patch("ai_cost_observer.telemetry.MeterProvider")
+    @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
+    @patch("ai_cost_observer.telemetry.Resource")
+    def test_logger_provider_created(
+        self,
+        mock_resource,
+        mock_reader_cls,
+        mock_provider_cls,
+        mock_metrics,
+        mock_logging_handler,
+        mock_log_provider_cls,
+        mock_batch_processor,
+        mock_set_logger_provider,
+    ):
+        """LoggerProvider is created, registered, and receives a BatchLogRecordProcessor."""
+        from ai_cost_observer.telemetry import TelemetryManager
+
+        mock_exporter = MagicMock()
+        mock_provider_cls.return_value.get_meter.return_value = MagicMock()
+
+        config = AppConfig()
+        config.otel_endpoint = "localhost:4317"
+        config.host_name = "test-host"
+
+        TelemetryManager(config, exporter=mock_exporter)
+
+        mock_log_provider_cls.assert_called_once()
+        mock_log_provider_cls.return_value.add_log_record_processor.assert_called_once()
+        mock_set_logger_provider.assert_called_once_with(mock_log_provider_cls.return_value)
+
+    @patch("ai_cost_observer.telemetry.set_logger_provider")
+    @patch("ai_cost_observer.telemetry.BatchLogRecordProcessor")
+    @patch("ai_cost_observer.telemetry.LoggerProvider")
+    @patch("ai_cost_observer.telemetry.LoggingHandler")
+    @patch("ai_cost_observer.telemetry.metrics")
+    @patch("ai_cost_observer.telemetry.MeterProvider")
+    @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
+    @patch("ai_cost_observer.telemetry.Resource")
+    def test_loguru_handler_added(
+        self,
+        mock_resource,
+        mock_reader_cls,
+        mock_provider_cls,
+        mock_metrics,
+        mock_logging_handler,
+        mock_log_provider_cls,
+        mock_batch_processor,
+        mock_set_logger_provider,
+    ):
+        """A LoggingHandler is added to the loguru logger."""
+        from ai_cost_observer.telemetry import TelemetryManager
+
+        mock_exporter = MagicMock()
+        mock_provider_cls.return_value.get_meter.return_value = MagicMock()
+
+        config = AppConfig()
+        config.otel_endpoint = "localhost:4317"
+        config.host_name = "test-host"
+
+        with patch("ai_cost_observer.telemetry.logger") as mock_loguru:
+            TelemetryManager(config, exporter=mock_exporter)
+            mock_loguru.add.assert_called_once()
+            call_args = mock_loguru.add.call_args
+            assert call_args[0][0] is mock_logging_handler.return_value
+
+    @patch("ai_cost_observer.telemetry.set_logger_provider")
+    @patch("ai_cost_observer.telemetry.BatchLogRecordProcessor")
+    @patch("ai_cost_observer.telemetry.LoggerProvider")
+    @patch("ai_cost_observer.telemetry.LoggingHandler")
+    @patch("ai_cost_observer.telemetry.metrics")
+    @patch("ai_cost_observer.telemetry.MeterProvider")
+    @patch("ai_cost_observer.telemetry.PeriodicExportingMetricReader")
+    @patch("ai_cost_observer.telemetry.Resource")
+    def test_log_provider_shutdown(
+        self,
+        mock_resource,
+        mock_reader_cls,
+        mock_provider_cls,
+        mock_metrics,
+        mock_logging_handler,
+        mock_log_provider_cls,
+        mock_batch_processor,
+        mock_set_logger_provider,
+    ):
+        """LoggerProvider is shut down alongside MeterProvider."""
+        from ai_cost_observer.telemetry import TelemetryManager
+
+        mock_exporter = MagicMock()
+        mock_meter_provider = MagicMock()
+        mock_provider_cls.return_value = mock_meter_provider
+        mock_meter_provider.get_meter.return_value = MagicMock()
+
+        config = AppConfig()
+        tm = TelemetryManager(config, exporter=mock_exporter)
+        tm.shutdown()
+
+        mock_meter_provider.shutdown.assert_called_once()
+        mock_log_provider_cls.return_value.shutdown.assert_called_once()
